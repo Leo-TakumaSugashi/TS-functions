@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<HTML>
+<head>
+	<title>Help : Capillaro MatFunctions n others...</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=SHIFTJIS">
+</head>
+
+<body>
+	<p><font size="+5">Help : Capillaro Mat.Functions <MATLAB> </font></p>
+	<p>Edit by Sugashi Takuma, <br>
+		Update : "2019/11/2"
+	</p>
+	
+	<p><br><font size="+2"><b>
+		Main Flow :  <br>
+	</font>
+		&emsp; 0. Input (GUI)<br>
+		&emsp;&emsp; 0.1 Select File(*.avi), & load to MATLAB <br>
+		&emsp; 1. Adjust Contrast <br>
+		&emsp; 2. Blind Doconvolution <br>
+		&emsp;&emsp;2.1. Define Reference Slice (Default : 1st)<br>
+		&emsp;&emsp;2.2. if necessary, Shading (Default : skip)<br>
+		&emsp; 3. Reposit (/Rough)縲菫晉蕗・・ｼ・br>
+		&emsp;&emsp;3.1. (Define Analysis Area)<br>
+		&emsp; 4. Recognize Capillaries (Binalization Ref. slice)<br>
+		&emsp; 5. Skeletoning (bwskel or TS_Skeleton,)<br>
+		&emsp; 6. Segmentation (and Eliminate fake /Rough) = SEG-data<br>
+		&emsp; 7. Eliminate fake /Details<br>
+		&emsp; 8. Reposit /Details by easy measurement diameters<br>
+		&emsp;&emsp; 8.1 if necessary, Reposit center points,<br>
+		&emsp; 9. Resampling & Smoothing Center Points(SEG-data)<br>
+		&emsp;10. Measurement<br>
+		&emsp;&emsp;10.1 陦豬∬ｩ穂ｾ｡譎ゅ↓Segment縺ｸ縺ｮ繝輔ぅ繝ｼ繝峨ヰ繝・け<br>
+		&emsp;11. Output (to .csv/.tif and /.mat & Feedback to GUI)<br>
+		<br><br>
+		Deconvo縺吶ｋ蜑阪↓繧ｳ繝ｳ繝医Λ繧ｹ繝郁ｪｿ謨ｴ縺・ｉ縺ｭ繝ｼ繝ｼ繝ｼ繝ｼ繝ｼ繝ｼ・・ｼ・
+		<br><br>
+	</b></p>
+	<table>
+	  <p><font size="+2"><b>(Adjusted Cont. Sample.)</font></b><br>
+		<video width="1024px" height='768px' controls loop>
+		<source src="./Sample.mp4"></source>
+		<source src=".\Sample.mp4"></source>
+		  sorrry kusaka... <! -- end of video.
+	  </video></p>
+	  <p><font size="+2"><b>(Deconv. Sample.)</font></b><br>
+		<video width="1024px" height='768px' controls loop>
+		<source src="./SampleDeconv.mp4"></source>
+		<source src=".\SampleDeconv.mp4"></source>
+		  sorrry kusaka... <! -- end of video.
+	  </video></p>
+	</table>
+	
+</body>
+
+</HTML>
