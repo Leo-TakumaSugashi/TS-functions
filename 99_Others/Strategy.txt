@@ -1,0 +1,23 @@
+Papers.
+1. ISOTT 
+    --> done.
+2. Semi-Auto Cap. Analysis
+    --> Cap. Analysis. ??
+3. MG.
+    --> Tracking Soma,
+        Detection tree classifier
+        
+4. Tissue area vs Hyperoxia
+
+
+What's wanna do ?
+. Shaving 
+. Connect - ReSegment v2
+. classifier tree for vessesls
+(. Auto Reposit 7D)
+. Detection identical Soma tracking by tree classifier
+
+. Unet as Penetrating MG48
+
+
+   

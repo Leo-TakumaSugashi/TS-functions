@@ -1,0 +1,18 @@
+function SEG = JM_AnalysisDiameter_2d(Image,Reso)
+if ~ismatrix(Image)
+    error('not matrix')
+end
+%% denoising
+mfImage = TSmedfilt2(Image,[5 5]);
+%% binarize
+block_size = ones(1,2) * round(50/Reso(1));
+BW = TS_im2bw_block_v2019a(mfImage,block_size);
+%% pre-processing
+BW = imfill(BW,'holes');
+BW = imclose(BW,strel('disk',2,0));
+%% skelton
+skel = bwskel(BW);
+%% segment
+output = TS_AutoSegment_v2019Charly(skel,Reso,[],10);
+%% measurment
+SEG = TS_AutoAnalysisDiam_SEG_v2019delta(mfImage,Reso,'sp8',output);
