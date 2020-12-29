@@ -1,0 +1,79 @@
+# CompilerName=clang
+# Mode=optim
+ninja_required_version = 1.3
+
+# Basic folders
+root = .
+builddir = $root/build/maci64
+matlabdir = /Applications/MATLAB_R2019b.app
+startdir = /Users/leo/Documents/TSfun20200103/77_AutoSEG_MEX
+
+# Toolchain information
+cc = /usr/bin/xcrun -sdk macosx10.15.1 clang
+cxx = /usr/bin/xcrun -sdk macosx10.15.1 clang++
+linker = /usr/bin/xcrun -sdk macosx10.15.1 clang
+linkerxx = /usr/bin/xcrun -sdk macosx10.15.1 clang++
+
+cflags =  -fno-common -arch x86_64 -mmacosx-version-min=10.9 -fexceptions -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -DMATLAB_MEX_FILE -O2 -fwrapv -DNDEBUG -std=c99 -I "$root" -I "$startdir" -I "$matlabdir/extern/include" -I "$root/interface" -I "$matlabdir/simulink/include" -I "$matlabdir/rtw/c/src" -I "$matlabdir/rtw/c/src/ext_mode/common" -I "$matlabdir/rtw/c/ert" -I "." -DHAVE_LAPACK_CONFIG_H -DLAPACK_COMPLEX_STRUCTURE -DMW_HAVE_LAPACK_DECLS -DMODEL=AutoSegment_OSX_mex -DHAVESTDIO -DUSE_RTMODEL -DUNIX -c 
+
+cxxflags =  -fno-common -arch x86_64 -mmacosx-version-min=10.9 -fexceptions -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -fobjc-arc -std=c++11 -stdlib=libc++ -DMATLAB_MEX_FILE -O2 -fwrapv -DNDEBUG -std=c++11 -I "$root" -I "$startdir" -I "$matlabdir/extern/include" -I "$root/interface" -I "$matlabdir/simulink/include" -I "$matlabdir/rtw/c/src" -I "$matlabdir/rtw/c/src/ext_mode/common" -I "$matlabdir/rtw/c/ert" -I "." -DHAVE_LAPACK_CONFIG_H -DLAPACK_COMPLEX_STRUCTURE -DMW_HAVE_LAPACK_DECLS -DMODEL=AutoSegment_OSX_mex -DHAVESTDIO -DUSE_RTMODEL -DUNIX -c 
+
+ldflags =  -Wl,-twolevel_namespace -undefined error -arch x86_64 -mmacosx-version-min=10.9 -Wl,-syslibroot,/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -bundle   -L"$matlabdir/bin/maci64" -lmx -lmex -lmat -lc++  -Wl,-rpath,@loader_path -o AutoSegment_OSX_mex.mexmaci64 -L"$matlabdir/bin/maci64" -lmwimfilter -lmwnhood -lmwmorphop_ipp -lmwipp -lmwmorphop_binary_tbb -lmwlapack -lmwblas -lmwbwdistEDTFT_tbb -lmwbwdistEDT_tbb -lemlrt -lcovrt -lut -lmwmathutil  -Wl,-exported_symbols_list,AutoSegment_OSX_mex.map
+
+# Build Rules
+rule cc
+    command = $cc $cflags $in -o $out
+
+rule cxx
+    command = $cxx $cxxflags $in -o $out
+
+rule link
+    command = $linker $in $ldflags
+
+rule linkxx
+    command = $linkerxx $in $ldflags
+
+# Build
+build $builddir/rt_nonfinite.o : cc $root/rt_nonfinite.c
+build $builddir/AutoSegment_mexutil.o : cc $root/AutoSegment_mexutil.c
+build $builddir/AutoSegment_data.o : cc $root/AutoSegment_data.c
+build $builddir/AutoSegment_initialize.o : cc $root/AutoSegment_initialize.c
+build $builddir/AutoSegment_terminate.o : cc $root/AutoSegment_terminate.c
+build $builddir/AutoSegment.o : cc $root/AutoSegment.c
+build $builddir/cat.o : cc $root/cat.c
+build $builddir/eml_int_forloop_overflow_check.o : cc $root/eml_int_forloop_overflow_check.c
+build $builddir/tic.o : cc $root/tic.c
+build $builddir/timeKeeper.o : cc $root/timeKeeper.c
+build $builddir/power.o : cc $root/power.c
+build $builddir/repmat.o : cc $root/repmat.c
+build $builddir/assertValidSizeArg.o : cc $root/assertValidSizeArg.c
+build $builddir/TS_skelmorph3d.o : cc $root/TS_skelmorph3d.c
+build $builddir/TS_skel2endpoint.o : cc $root/TS_skel2endpoint.c
+build $builddir/imfilter.o : cc $root/imfilter.c
+build $builddir/padarray.o : cc $root/padarray.c
+build $builddir/indexShapeCheck.o : cc $root/indexShapeCheck.c
+build $builddir/find.o : cc $root/find.c
+build $builddir/ind2sub.o : cc $root/ind2sub.c
+build $builddir/TS_bwlabeln3D26.o : cc $root/TS_bwlabeln3D26.c
+build $builddir/imdilate.o : cc $root/imdilate.c
+build $builddir/TS_Label2Centroid.o : cc $root/TS_Label2Centroid.c
+build $builddir/sum.o : cc $root/sum.c
+build $builddir/combineVectorElements.o : cc $root/combineVectorElements.c
+build $builddir/sqrt.o : cc $root/sqrt.c
+build $builddir/bwdist.o : cc $root/bwdist.c
+build $builddir/diff.o : cc $root/diff.c
+build $builddir/nansum.o : cc $root/nansum.c
+build $builddir/AtSEG_shaving.o : cc $root/AtSEG_shaving.c
+build $builddir/TS_Skeleton3D_oldest.o : cc $root/TS_Skeleton3D_oldest.c
+build $builddir/sort.o : cc $root/sort.c
+build $builddir/sortIdx.o : cc $root/sortIdx.c
+build $builddir/nullAssignment.o : cc $root/nullAssignment.c
+build $builddir/xyz2plen.o : cc $root/xyz2plen.c
+build $builddir/_coder_AutoSegment_api.o : cc $root/interface/_coder_AutoSegment_api.c
+build $builddir/_coder_AutoSegment_mex.o : cc $root/interface/_coder_AutoSegment_mex.c
+build $builddir/AutoSegment_emxutil.o : cc $root/AutoSegment_emxutil.c
+build $builddir/_coder_AutoSegment_info.o : cc $root/interface/_coder_AutoSegment_info.c
+build $builddir/c_mexapi_version.o : cc $matlabdir/extern/version/c_mexapi_version.c
+
+# Link
+build $root/AutoSegment_OSX_mex.mexmaci64 : link $builddir/rt_nonfinite.o $builddir/AutoSegment_mexutil.o $builddir/AutoSegment_data.o $builddir/AutoSegment_initialize.o $builddir/AutoSegment_terminate.o $builddir/AutoSegment.o $builddir/cat.o $builddir/eml_int_forloop_overflow_check.o $builddir/tic.o $builddir/timeKeeper.o $builddir/power.o $builddir/repmat.o $builddir/assertValidSizeArg.o $builddir/TS_skelmorph3d.o $builddir/TS_skel2endpoint.o $builddir/imfilter.o $builddir/padarray.o $builddir/indexShapeCheck.o $builddir/find.o $builddir/ind2sub.o $builddir/TS_bwlabeln3D26.o $builddir/imdilate.o $builddir/TS_Label2Centroid.o $builddir/sum.o $builddir/combineVectorElements.o $builddir/sqrt.o $builddir/bwdist.o $builddir/diff.o $builddir/nansum.o $builddir/AtSEG_shaving.o $builddir/TS_Skeleton3D_oldest.o $builddir/sort.o $builddir/sortIdx.o $builddir/nullAssignment.o $builddir/xyz2plen.o $builddir/_coder_AutoSegment_api.o $builddir/_coder_AutoSegment_mex.o $builddir/AutoSegment_emxutil.o $builddir/_coder_AutoSegment_info.o $builddir/c_mexapi_version.o 
