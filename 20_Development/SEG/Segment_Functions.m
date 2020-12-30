@@ -1,4 +1,7 @@
 classdef Segment_Functions
+    %% version memo
+    % Dec. 30th, 2020 Sugashi
+    %  Edited set_Segment for new structure(NewXYZrot,nor,ell)
     properties
         Segment
         StartEndXYZ(2,3,:)
@@ -18,7 +21,7 @@ classdef Segment_Functions
         FaiReferenceLength = 10; %% [um];
         EllipticLengthLim = 5; %% just for 2D
         EllipticFaiLim = pi/4; % [radian], for 3D
-        UpDate = '2020/28th/Dec., by Leo Sugashi Takuma'
+        UpDate = '2020/30th/Dec., by Leo Sugashi Takuma'
         UserData
     end
     methods
@@ -170,11 +173,32 @@ classdef Segment_Functions
             
             if ~isfield(Pdata,'NewXYZ') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).NewXYZ= nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).NewXYZ= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
                 end
             else
                 % % if after resampling....
-            end 
+            end
+            if ~isfield(Pdata,'NewXYZrot') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).NewXYZrot= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                end
+            else
+                % % if after resampling....
+            end
+            if ~isfield(Pdata,'NewXYZnor') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).NewXYZnor= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                end
+            else
+                % % if after resampling....
+            end
+            if ~isfield(Pdata,'NewXYZell') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).NewXYZell= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                end
+            else
+                % % if after resampling....
+            end
             if ~isfield(Pdata,'MEMO')
                 for n = 1:length(Pdata)
                     Pdata(n).MEMO = ' '; 

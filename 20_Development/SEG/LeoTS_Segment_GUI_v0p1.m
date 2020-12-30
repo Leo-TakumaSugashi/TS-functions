@@ -382,10 +382,17 @@ classdef LeoTS_Segment_GUI_v0p1
           if ~strcmpi('off',obj.Resize)
               set(H.figure,'ResizeFcn',@WindowResize)
           end
-          function WindowButtonFcn(ParentH,event)
+          function WindowButtonFcn(ParentH,event)              
               if H.Axes == gca &&  strcmpi(event.EventName,'WindowMousePress')
                  Type = get(H.figure,'SelectionType'); % normal,alt,extend,open
-                 if strcmpi(Type,'extend') && H.SEG_DrawSEGPoint.Value                     
+                 
+%                  TypeTF = false;
+%                  if ismac
+%                      TypeTF = strcmpi(Type,'alt');
+%                  else
+                     TypeTF = strcmpi(Type,'extend');
+%                  end
+                 if TypeTF && H.SEG_DrawSEGPoint.Value                     
                      ROI = obj.Draw1SEGdata;                     
                      h = drawpoint(H.Axes);
                      delete(h.UIContextMenu.Children)
@@ -399,8 +406,14 @@ classdef LeoTS_Segment_GUI_v0p1
                      end                     
                      h.Label = num2str(length(ROI));
                      h.UIContextMenu.UserData = h.Label;
-                     % XYZ                     
+                     % XYZ  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% only Z
+                     
                      A = GetIndex_slider(H.Slider(1));
+                     
+                     A = double(A) -1;
+                     A = A .* obj.Resolution(3);
+                     
+                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                      %XYZ = [];
                      h.UserData = double(A);
                      obj.Draw1SEGdata = ROI;
@@ -879,11 +892,20 @@ classdef LeoTS_Segment_GUI_v0p1
                   fprintf('\n    Why?\n\n============ ============ ============ \n')
                   return
               end              
-              xyz_Real = (xyz_Voxels - 1) .* obj.Resolution(1:3);
-%               xyz_SEGVoxels = xyz_Real ./ obj.Segment.ResolutionXYZ + 1;
-              xyz_SEGVoxels = xyz_Real ;
-              disp(num2str(xyz_SEGVoxels,4))
-              Copy_Pointdata = obj.Segment.Pointdata(1);              
+%               xyz_Real = (xyz_Voxels - 1) .* obj.Resolution(1:3);
+              xyz_SEGVoxels = xyz_Voxels ./ obj.Segment.ResolutionXYZ + 1;
+              
+              Copy_SEG = obj.Segment;
+              if length(Copy_SEG.Pointdata)>1
+                  Copy_SEG.Pointdata(2:end) = [];
+              end
+              Copy_SEG.Pointdata.PointXYZ = xyz_SEGVoxels;
+              Copy_SEG.Pointdata.OriginalPointXYZ = xyz_SEGVoxels;
+              Copy_SEG.Pointdata.Branch = Branch;
+              Copy_SEG.Pointdata.Diameter = [];
+              Copy_SEG = obj.SEGFcn.set_Segment(Copy_SEG,'f');
+              Copy_Pointdata = Copy_SEG.Pointdata;
+%               xyz_SEGVoxels = xyz_Real ;            
               if sum(isnan(Branch(:,1))) == 0
                   Type = 'End to End';
               elseif sum(isnan(Branch(:,1))) == 1
@@ -891,21 +913,10 @@ classdef LeoTS_Segment_GUI_v0p1
               elseif sum(isnan(Branch(:,1))) == 2
                   Type = 'Branch to Branch';
               end
-              SEGReso = obj.Segment.ResolutionXYZ;
+              
               abs_catID = abs(cat(1,obj.Segment.Pointdata.ID));
-              catID = cat(1,obj.Segment.Pointdata.ID);
-              index = find(catID>0,true,'first');
-              MaxTime = size(obj.Segment.Pointdata(index).Diameter,2);
               Copy_Pointdata.ID = max(abs_catID) + 1;
-              Copy_Pointdata.PointXYZ = xyz_SEGVoxels;
               Copy_Pointdata.Type = Type;
-              Copy_Pointdata.Length = sum(xyz2plen(xyz_SEGVoxels,SEGReso));
-              Copy_Pointdata.Branch = Branch;
-              Copy_Pointdata.Signal = single(nan(size(xyz_SEGVoxels,1),MaxTime));
-              Copy_Pointdata.Noise = single(nan(size(xyz_SEGVoxels,1),MaxTime));
-              Copy_Pointdata.Diameter = single(nan(size(xyz_SEGVoxels,1),MaxTime));
-%               Copy_Pointdata.NewXYZ = single(nan(size(xyz_SEGVoxels,1),1));
-              Copy_Pointdata.Class = 'ohters';
               Copy_Pointdata.MEMO = ['Drawed ' date];
               NewPointdata = obj.Segment.Pointdata;
               Numel = length(NewPointdata);
@@ -1003,7 +1014,8 @@ classdef LeoTS_Segment_GUI_v0p1
               if isempty(xyz_Voxels)
                   return
               end
-              xyz_Real = (xyz_Voxels-1) .* obj.Resolution(1:3);
+%               xyz_Real = (xyz_Voxels-1) .* obj.Resolution(1:3);
+              xyz_Real = xyz_Voxels;
               Ind = ROI_GetXYZ_IndexSort; 
               if ~isempty(xyz_Voxels)                  
                   hold(H.Axes,'on')
