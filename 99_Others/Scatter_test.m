@@ -1,4 +1,4 @@
-theta = linspace(0,2*pi,181);
+theta = linspace(-pi,pi,361);
 
 figure
 for n = linspace(-1,1,11)
@@ -8,16 +8,66 @@ for n = linspace(-1,1,11)
     hold on
 end
 
-
+%%
 figure
-for n = linspace(-1,1,11)
+for n = linspace(0,1,11)
     p = HenyeyGreenstein(n,theta);
+    p = p - min(p);
     p = p ./max(abs(p));
     plot(theta,p);
     hold on
 end
 
 
+%%
+figure
+x = rand(1,100000)*pi;
+xdata = linspace(0,pi*2,100);
+for n = 0.1:0.3:0.7
+%     xin = HenyeyGreenstein(n,x);
+%     xr = Rand_HenyeyGreenstein(n,xin);
+    xr = Rand_HenyeyGreenstein(n,x);
+    xr = abs(xr);
+    h = hist(xr./max(xr),xdata);
+%     [h,xdata] = hist(abs(xr),1000);
+%     plot(xdata,h)
+    polarplot(xdata,h/max(h))
+    hold on
+    drawnow
+end
+
+
+%%
+figure
+bin = 100000;
+xdata = linspace(0,pi,100);
+for n = 0.1:0.2:0.9
+    xr = Rand_HenyeyGreensteinRev(n,bin);
+    h = hist(xr,xdata);
+%     [h,xdata] = hist(abs(xr),1000);
+%     plot(xdata,h)
+    polarplot(xdata,h./max(h))
+    hold on
+    drawnow
+end
+
+
+
+%%
+figure
+bin = 100000;
+xdata = linspace(0,pi,100);
+for n = 0.1:0.2:0.9
+    xr = Rand_HenyeyGreenstein(n,bin);
+    max(xr)
+    h = hist(xr,xdata);
+%     [h,xdata] = hist(abs(xr),1000);
+%     plot(xdata,h)
+    polarplot(xdata,h./max(h))
+    hold on
+    drawnow
+end
+%%
 mu1 = [1 2];
 Sigma1 = [2 0; 0 0.5];
 mu2 = [-3 -5];
