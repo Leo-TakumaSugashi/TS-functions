@@ -72,10 +72,10 @@ elseif isunix
     else
         
         [dummy,a] = system('free -b| grep Mem'); % for linux
-        if nargout==0
-            fprintf(a)
-            return
-        end
+%         if nargout==0
+%             fprintf(a)
+%             return
+%         end
         p = a == ' ';
         label_p = bwlabel(~p);
     %     Used = str2double(a(label_p == 3)) / 2^20;
