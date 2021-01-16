@@ -1,4 +1,4 @@
-theta = linspace(-pi,pi,361);
+theta = linspace(-pi,pi,360*5 +1);
 
 figure
 for n = linspace(-1,1,11)
@@ -18,7 +18,29 @@ for n = linspace(0,1,11)
     hold on
 end
 
-
+%%
+figure
+for n = [-1 -.9 -.5 0 .7 .9]
+    p = HenyeyGreenstein(n,theta);
+    p = p - min(p);
+    p = p ./max(abs(p));
+    plot(theta,p);
+    hold on
+end
+ch = get(gca,'Children');
+ch(1).LineStyle = ':';
+ch(2).LineStyle = '--';
+ch(4).LineStyle = '--';
+ch(5).LineStyle = '-.';
+ch(6).Marker = 'none';
+LgSTR = {
+'g=-1.0';
+'g=-0.9';
+'g=-0.5';
+'g= 0.0';
+'g= 0.7';
+'g= 0.9';};
+legend(LgSTR)
 %%
 figure
 x = rand(1,100000)*pi;

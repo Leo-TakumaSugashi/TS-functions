@@ -51,7 +51,7 @@ A = inputdlg(prompt,'Inpput Oputions',1,defaltans);
 if isempty(A)
     return
 end
-keyboard
+% keyboard
 v = VideoWriter(A{1},STR);
 v.FrameRate = eval(A{2});
 % v. Quality = eval(A{3});
