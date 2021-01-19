@@ -1,4 +1,4 @@
-classdef LeoTS_Segment_GUI_v0p1
+classdef Segment_GUI
     % ver1.55 , almost function(uicontroll,in panels) is Done,
     % But, in real case, FOV 455.88x455.88x800 um, is too heavy for
     % rendering.(may be too many text and plot data)
@@ -38,6 +38,11 @@ classdef LeoTS_Segment_GUI_v0p1
     %     {'Fai_AngleFromXYplane'   }
     %     {'AnalysisShoudBeElliptic'}
     % all of type might be able to use in SEGview(SEG,'string')
+    %
+    %
+    % version v0.2
+    % Name to Segment_GUI
+    % add chose all in view(panel 3)
 
    properties
       Name(1,:) char
@@ -116,6 +121,7 @@ classdef LeoTS_Segment_GUI_v0p1
       ChaseSegment
       
       Tag
+      Version = 0.2
       UserData
    end
    methods
@@ -345,10 +351,11 @@ classdef LeoTS_Segment_GUI_v0p1
           obj.ControllerHight = H.ControllerA.Position(4);
           fprintf('Input Image data is disirable uint8 class as Image matrix....\n\n')           
       %% Default set up
-          VersionNum = mfilename;
-          IndVer = find(VersionNum == '_');
-          VersionNum = VersionNum(IndVer(3)+2:end);
-          VersionNum(VersionNum=='p') = '.';
+%           VersionNum = mfilename;
+%           IndVer = find(VersionNum == '_');
+%           VersionNum = VersionNum(IndVer(3)+2:end);
+%           VersionNum(VersionNum=='p') = '.';
+          VersionNum = obj.Version;
           H.figure.Name = ['Segment Editor (ver. '  num2str(VersionNum,'%.1f')  ')'];
           H.figure.Colormap = gray(256);
           H.figure.Resize = obj.Resize;
@@ -808,8 +815,11 @@ classdef LeoTS_Segment_GUI_v0p1
               NewData = set_Table_XYZ(NewPdata(YangerID(1)),obj.Segment.ResolutionXYZ);
               set(H.Table_XYZ,'Data',NewData)
               % Refresh SEG-view
-              keyboard
-              ResetSEGview
+              try
+                ResetSEGview
+              catch err
+                keyboard
+              end
               drawnow
               oh.Enable = 'on';
               fprintf('Done.\n============ ============ ============\n')
@@ -2375,7 +2385,7 @@ classdef LeoTS_Segment_GUI_v0p1
           end
           
           set(H.MenuH.Panel3_CheckBeardInView,'Callback',@Callback_CheckBeardInView)
-          function Callback_CheckBeardInView(~,~)
+          function Callback_CheckBeardInView(oh,~)              
               if isempty(H.SEGview_Text)
                   fprintf('Plese check on SEG text.')
                   return
@@ -2387,14 +2397,23 @@ classdef LeoTS_Segment_GUI_v0p1
               SEG.Pointdata = SEG.Pointdata(catID);
               catID = cat(1,SEG.Pointdata.ID);
               BeardID = [];
-              for n = 1:length(txh)
-                  chid = str2double(txh(n).String);
-                  index = catID == chid;
-                  Type = SEG.Pointdata(index).Type;
-                  if strcmpi(Type,'End to Branch')
-                      BeardID = [BeardID chid];
+              if strcmpi(oh.Label,'Check Beard in View')                  
+                  for n = 1:length(txh)
+                      chid = str2double(txh(n).String);
+                      index = catID == chid;
+                      Type = SEG.Pointdata(index).Type;
+                      if strcmpi(Type,'End to Branch')
+                          BeardID = [BeardID chid];
+                      end
                   end
+              elseif strcmpi(oh.Label,'Check ALL in View')                  
+                  for n = 1:length(txh)
+                      chid = str2double(get(txh(n),'String'));                      
+                      BeardID = [BeardID chid];                      
+                  end
+              else
               end
+             
               if isempty(BeardID)
                   fprintf('   Empty type of "End to Branch".')
               end
@@ -2423,46 +2442,8 @@ classdef LeoTS_Segment_GUI_v0p1
               end              
           end
           
-          set(H.MenuH.Panel3_CheckAllInView,'Callback',@Callback_CheckAllInView)
-          function Callback_CheckAllInView(~,~)
-              if isempty(H.SEGview_Text)
-                  fprintf('Plese check on SEG text.')
-                  return
-              else
-                  txh = H.SEGview_Text;
-              end
-              SEG = obj.Segment;
-              catID = cat(1,SEG.Pointdata.ID) > 0;
-              SEG.Pointdata = SEG.Pointdata(catID);
-              catID = cat(1,SEG.Pointdata.ID);
-              BeardID = catID(catID>0);
-              if isempty(BeardID)
-                  fprintf('   Empty type of "ID>0 or any Segment".')
-              end
-              
-              prompt = {'Checking All Segment(s).'};
-              name = 'Input and check Number(s).';
-              numlines = 1;
-              defaultans = {num2str(BeardID),'ID Numbers'};
-              OPT.Resize = 'on';
-              Ans = inputdlg(prompt,name,numlines,defaultans,OPT);
-              
-              if isempty(Ans)
-                  return
-              else
-                  IDs = str2num(Ans{:});
-                  Columname = H.Table_Pdata.ColumnName;
-                  catID = H.Table_Pdata.Data(:,strcmpi(Columname,'ID'));                  
-                  catID = cell2mat(catID);
-                  NewData = H.Table_Pdata.Data;
-                  for k = 1:length(IDs)
-                      NewData{find(catID == IDs(k)),strcmpi(Columname,'Edit')} = true;
-                  end
-                  catEdit = cell2mat(NewData(:,strcmpi(Columname,'Edit')));
-                  NewData = cat(1,NewData(catEdit,:),NewData(~catEdit,:));
-                  H.Table_Pdata.Data = NewData;
-              end              
-          end
+          set(H.MenuH.Panel3_CheckAllInView,'Callback',@Callback_CheckBeardInView)
+         
           
           
           %% SEGview label

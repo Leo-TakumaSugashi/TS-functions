@@ -590,6 +590,7 @@ classdef Sugashi_ReconstructGroup
             % Default is 100(?)
             % 
             % XLim,YLim,ZLim, are real size Limit, size(LIM) = (1,2)
+            txh = [];
             TextLimit = obj.SEGview_textLim;
             SEGFun = Segment_Functions;
             SEG = SEGFun.set_Segment(SEG);
@@ -692,8 +693,7 @@ classdef Sugashi_ReconstructGroup
                 end
                 Pdata = Pdata(indexTF);
             end
-            if length(Pdata) > TextLimit
-                txh = [];
+            if length(Pdata) > TextLimit                
                 return
             end            
             for n = 1:length(Pdata)
@@ -701,7 +701,11 @@ classdef Sugashi_ReconstructGroup
                 txh(n) = text(axh,xyz(1),xyz(2),xyz(3),num2str(Pdata(n).ID));
                 %%%%%%Font Color Limit for End to Branch %%%%
                 if strcmpi((Pdata(n).Type),'End to Branch')
-                    txh(n).Color = [.8 0 0];
+                    try
+                        txh(n).Color = [0.8 0 0];
+                    catch
+                        set(txh(n),'Color',[0.8 0 0])
+                    end
                 end
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             end
