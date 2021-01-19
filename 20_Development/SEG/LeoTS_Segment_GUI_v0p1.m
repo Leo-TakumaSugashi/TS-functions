@@ -2422,6 +2422,48 @@ classdef LeoTS_Segment_GUI_v0p1
               end              
           end
           
+          set(H.MenuH.Panel3_CheckAllInView,'Callback',@Callback_CheckAllInView)
+          function Callback_CheckAllInView(~,~)
+              if isempty(H.SEGview_Text)
+                  fprintf('Plese check on SEG text.')
+                  return
+              else
+                  txh = H.SEGview_Text;
+              end
+              SEG = obj.Segment;
+              catID = cat(1,SEG.Pointdata.ID) > 0;
+              SEG.Pointdata = SEG.Pointdata(catID);
+              catID = cat(1,SEG.Pointdata.ID);
+              BeardID = catID(catID>0);
+              if isempty(BeardID)
+                  fprintf('   Empty type of "ID>0 or any Segment".')
+              end
+              
+              prompt = {'Checking All Segment(s).'};
+              name = 'Input and check Number(s).';
+              numlines = 1;
+              defaultans = {num2str(BeardID),'ID Numbers'};
+              OPT.Resize = 'on';
+              Ans = inputdlg(prompt,name,numlines,defaultans,OPT);
+              
+              if isempty(Ans)
+                  return
+              else
+                  IDs = str2num(Ans{:});
+                  Columname = H.Table_Pdata.ColumnName;
+                  catID = H.Table_Pdata.Data(:,strcmpi(Columname,'ID'));                  
+                  catID = cell2mat(catID);
+                  NewData = H.Table_Pdata.Data;
+                  for k = 1:length(IDs)
+                      NewData{find(catID == IDs(k)),strcmpi(Columname,'Edit')} = true;
+                  end
+                  catEdit = cell2mat(NewData(:,strcmpi(Columname,'Edit')));
+                  NewData = cat(1,NewData(catEdit,:),NewData(~catEdit,:));
+                  H.Table_Pdata.Data = NewData;
+              end              
+          end
+          
+          
           %% SEGview label
           for n = 1:length(H.MenuH.SEGviewLabel)
               set(H.MenuH.SEGviewLabel(n),'Callback',@Callback_SEGviewLabel)
