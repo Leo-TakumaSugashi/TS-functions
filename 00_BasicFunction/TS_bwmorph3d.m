@@ -88,11 +88,15 @@ switch lower(meth)
         [Y,X,Z] = ind2sub(size(bw),find(bw(:)));
         EndP = TS_bwmorph3d(bw,'endpoint','none');
 %         bw(EndP) = false;
-        se1 = ones(3,3,3);
+        se1 = uint8(ones(3,3,3));
 %         se2 = false(3,3,3);
 %         se2(2,2,2) = true;
 %         se2 = bwdist(se2);
-        BPf1 = imfilter(uint8(bw),se1).*uint8(bw);
+        try
+            BPf1 = imfilter(uint8(bw),se1).*uint8(bw);
+        catch
+            BPf1 = Largeimfilter(uint8(bw)).*uint8(bw);
+        end
 %         BPf2 = imfilter(single(bw),se2).*single(BPf1>3);
         oldestBP = BPf1>3;
         BP = false(size(BPf1));
@@ -101,11 +105,19 @@ switch lower(meth)
             BP = or(BP,BPf1 == max(BPf1(:)));
             % %nearest 26 point ---> false
             bw(imdilate(BP,se1)) = false; 
-            BPf1 = imfilter(uint8(bw),ones(3,3,3)).*uint8(bw);
+            try
+                BPf1 = imfilter(uint8(bw),se1).*uint8(bw);
+            catch
+                BPf1 = Largeimfilter(uint8(bw)).*uint8(bw);
+            end
         end        
         LBP = uint32(bwlabeln(BP,26));
         s = regionprops(LBP,'Centroid');
         outputBP = false(size(BP));
+%         
+        
+        
+        
         % % Nearest to Centroid Point
         for n = 1:length(s)
 %             whos BP LBP n
@@ -200,6 +212,25 @@ switch lower(meth)
         A = bw(3:end-2,3:end-2,3:end-2);
     otherwise
         error('Input Method is NOT able to analysis...')
+end
+end
+%% for Large scale
+function Xout = Largeimfilter(In0)
+zstep = linspace(2,size(In0,3)-1,9);
+zstep = round(zstep);
+Xout = zeros(size(In0),'uint8');
+for n =1:length(zstep)-1
+    In = In0(:,:,zstep(n)-1:zstep(n+1)+1);
+    X = zeros(size(In),'uint8');
+    In = uint8(padarray(In,[1 1 1],uint8(0)));
+    for ny = 1:3
+        for nx = 1:3
+            for nz = 1:3
+                X = uint8(sum(cat(4,X,In(ny:end-3+ny,nx:end-3+nx,nz:end-3+nz)),4));
+            end
+        end
+    end
+    Xout(:,:,zstep(n)-1:zstep(n+1)+1) = max(Xout(:,:,zstep(n)-1:zstep(n+1)+1),X);
 end
 end
 

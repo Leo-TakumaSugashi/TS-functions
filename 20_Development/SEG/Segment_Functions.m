@@ -2,6 +2,11 @@ classdef Segment_Functions
     %% version memo
     % Dec. 30th, 2020 Sugashi
     %  Edited set_Segment for new structure(NewXYZrot,nor,ell)
+    %
+    % Jan. 29th, 2021 Sugashi
+    %  Edited RecheckType (Branch to Branch,  Branch to End, End to End or Others)
+    
+    
     properties
         Segment
         StartEndXYZ(2,3,:)
@@ -21,7 +26,7 @@ classdef Segment_Functions
         FaiReferenceLength = 10; %% [um];
         EllipticLengthLim = 5; %% just for 2D
         EllipticFaiLim = pi/4; % [radian], for 3D
-        UpDate = '2020/30th/Dec., by Leo Sugashi Takuma'
+        UpDate = '2021/30th/Jan., by Leo Sugashi Takuma'
         UserData
     end
     methods
@@ -748,11 +753,13 @@ classdef Segment_Functions
             cutids = cat(1,SEG.Pointdata.ID) > 0;
             SEG.Pointdata = SEG.Pointdata(cutids);
             obj.Segment = SEG;
-            chase_data = struct('Input_XYZ',input_xyz,'Chase',[]);            
+            chase_data = struct('Input_XYZ',input_xyz,...
+                'StartID',[],'Chase',[]);            
             if ~isvector(input_xyz)
                 error('Input XYZ(= Start XYZ) must Be [X,Y,Z] Vector data.')
             end
             [obj,StartID,StartFlipTF] = obj.Check_input_Chaser(obj.Segment.Pointdata,input_xyz);
+            chase_data.StartID = StartID;
             %% Main
             catID = [];
             catFlipTF = [];
@@ -769,6 +776,28 @@ classdef Segment_Functions
             end
             chase_data.Chase = Chase;
         end
+        function [obj,StartID,FlipTF] = Check_input_Chaser(obj,Pdata,xyz)            
+            cat_xyz = cat(1,Pdata.PointXYZ);
+            Xtf = xyz(1) == cat_xyz(:,1);
+            Ytf = xyz(2) == cat_xyz(:,2);
+            Ztf = xyz(3) == cat_xyz(:,3);
+            TF = and( and( Xtf, Ytf), Ztf);
+            if ~max(TF)
+                error('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
+            end           
+            
+            catID = cat(1,Pdata.ID);            
+            XYZ_matrix = zeros(2,3,length(Pdata));
+            for n = 1:length(Pdata)
+                XYZ_matrix(1,:,n) = Pdata(n).PointXYZ(1,:);
+                XYZ_matrix(2,:,n) = Pdata(n).PointXYZ(end,:);
+            end
+            obj.StartEndXYZ = XYZ_matrix;
+            Index = squeeze(obj.FindSameStartEndXYZ(xyz));
+            [y,x] = find(Index);
+            StartID = catID(x);
+            FlipTF = y ==2;            
+        end  
         function NewSEG = CalculateSphereFitRadius(obj,SEG)
             Pdata = SEG.Pointdata;
             Reso = SEG.ResolutionXYZ;            
@@ -1451,6 +1480,15 @@ classdef Segment_Functions
             NewSEG.BeardExtentionDate = TS_ClockDisp;
             
         end
+        
+        
+        function NewSEG = Euclid_Length_from_arteriovenous(obj,SEG)
+            Art_class = {'Art.','SA','PA'};
+            Vein_class = {'Vein','SV','PV'};
+        end
+        
+        
+        
         %%% for capillaro
         function [NewSEG,IDs] = ReSEG_Capillaro_bag(obj,SEG)
             % This is protorype
@@ -1872,29 +1910,7 @@ classdef Segment_Functions
                 Distance = min(cat(2,cDi1,cDi2),[],2);
             end
         end                
-        function [obj,StartID,FlipTF] = ...
-                Check_input_Chaser(obj,Pdata,xyz)            
-            cat_xyz = cat(1,Pdata.PointXYZ);
-            Xtf = xyz(1) == cat_xyz(:,1);
-            Ytf = xyz(2) == cat_xyz(:,2);
-            Ztf = xyz(3) == cat_xyz(:,3);
-            TF = and( and( Xtf, Ytf), Ztf);
-            if ~max(TF)
-                error('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
-            end           
-            
-            catID = cat(1,Pdata.ID);            
-            XYZ_matrix = zeros(2,3,length(Pdata));
-            for n = 1:length(Pdata)
-                XYZ_matrix(1,:,n) = Pdata(n).PointXYZ(1,:);
-                XYZ_matrix(2,:,n) = Pdata(n).PointXYZ(end,:);
-            end
-            obj.StartEndXYZ = XYZ_matrix;
-            Index = squeeze(obj.FindSameStartEndXYZ(xyz));
-            [y,x] = find(Index);
-            StartID = catID(x);
-            FlipTF = y ==2;            
-        end        
+              
         function check_Pairs(obj,Pairs)
             if ~iscell(Pairs)
                 error('Input "Pair(s)" is NOT cell class.')
@@ -1982,51 +1998,57 @@ classdef Segment_Functions
         
         function NewSEG = ReCheckType(obj)
             Pdata = obj.Segment.Pointdata;
-            fprintf(mfilename)
-            TS_WaiteProgress(0)
+            c = 0;
             for k = 1:length(Pdata)
-%                 if Pdata(k).ID < 0
-%                     continue
-%                 end
-                xyz = Pdata(k).PointXYZ;
-                %% Check Type 2019.06.13, edit %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                % End point    --> 1,
-                % Branch point --> 3,
-                % So, 
-                % E2E   = 2,  E2B = 4, B2B = 6            
-                Check_Edge = nan(1,2);
-                check_xyz = xyz([1 end],:);
-                for n =1:2
-                    Id_count = obj.FindID_xyz(check_xyz(n,:));
-                    Id_count(isnan(Id_count)) = [];
-                    if numel(Id_count)>1                    
-                        Check_Edge(n) = 3;
-                    else
-                        Check_Edge(n) = 1;
+                if Pdata(k).ID > 0
+                    xyz = Pdata(k).PointXYZ;
+                    %% Check Type 2019.06.13, edit %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    % End point    --> 1,
+                    % Branch point --> 3,
+                    % So, 
+                    % E2E   = 2,  E2B = 4, B2B = 6            
+                    Check_Edge = nan(1,2);
+                    check_xyz = xyz([1 end],:);
+                    for n =1:2
+%                       %%% Id_count = obj.FindID_xyz_edge(check_xyz(n,:));
+                        % If Parent Vascular has some branch point,... 
+                        % it shoud not be used obj.FindID_xyz_edge func..
+                        Id_count = obj.FindID_xyz(check_xyz(n,:));
+                        Id_count(isnan(Id_count)) = [];
+                        if numel(Id_count)>1                    
+                            Check_Edge(n) = 3;
+                        else
+                            Check_Edge(n) = 1;
+                        end
                     end
-                end
-                Check_Edge = sum(Check_Edge);
-                if Check_Edge == 2
-                    SegmentType = 'End to End';
-                elseif Check_Edge == 4
-                    SegmentType = 'End to Branch';
-                elseif Check_Edge == 6
-                    SegmentType = 'Branch to Branch';
+                    Check_Edge = sum(Check_Edge);
+                    if Check_Edge == 2
+                        SegmentType = 'End to End';
+                    elseif Check_Edge == 4
+                        SegmentType = 'End to Branch';
+                    elseif Check_Edge == 6
+                        SegmentType = 'Branch to Branch';
+                    else
+                        SegmentType = 'Others';
+                    end
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    if ~strcmpi(SegmentType,Pdata(k).Type)
+                        fprintf([' ID : ' num2str(Pdata(k).ID) ...
+                            ', Type : ' Pdata(k).Type])
+                        fprintf(['\n        to   ' SegmentType '\n\n'])
+                        Pdata(k).Type = SegmentType;
+                        c = c + 1;
+                    end            
                 else
-                    SegmentType = 'Others';
+                    Pdata(k).Type = 'Others';                    
                 end
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                if ~strcmpi(SegmentType,Pdata(k).Type)
-%                     fprintf(['#### #### Segment Type Change...\n  ID:' num2str(Pdata(k).ID) ...
-%                         '\n ' Pdata(k).Type])
-%                     fprintf(['\n to  ' SegmentType '\n #### #### #### #### \n'])
-                    Pdata(k).Type = SegmentType;                    
-                end            
-                TS_WaiteProgress(k/length(Pdata))
             end
             obj.Segment.Pointdata = Pdata;
             NewSEG = obj.Segment;
+            fprintf(['   Changed # ' num2str(c) '\n'])
         end
+        
+        
         function [index,Type] = Find_EndSEG(obj,Pdata)
             index_E2E = false(length(Pdata),1);
             index_E2B = false(length(Pdata),1);
@@ -2088,6 +2110,8 @@ classdef Segment_Functions
                 TF_flip_Foward = ceil(ind2/2) == floor(ind2/2);
             end
         end
+        
+        %% Chase Vascular Segment ,Core Func.
         function [IDs,FlipTFs] = FindNextSegment(obj,ID,FlipTF,varargin)
             % ID must Be 1 numel
             %% %% %% Cat Limit #################
@@ -2106,9 +2130,9 @@ classdef Segment_Functions
                 chase_FlipTFs = FlipTF;
                 IDs = [];
                 FlipTFs = [];
-                fprintf('# # # # # # # # # # # # # # # # # # # # # # # # \n')
-                fprintf('# # # # Starting "Chasing Segmentations"# # # # \n')
-                fprintf('# # # # # # # # # # # # # # # # # # # # # # # # \n')
+                fprintf(['# # # # # # # # # # # # # # # # # # # # \n',...
+                    '# # Starting "Chasing Segmentations"# # \n',...
+                    '# # # # # # # # # # # # # # # # # # # # \n'])
             else
                 chase_index= [varargin{1}, find(SegInd)];
                 chase_FlipTFs = [varargin{2}, FlipTF];
@@ -2184,6 +2208,7 @@ classdef Segment_Functions
             MapLen = obj.GetEachLength(p1,p2,Reso);
             [MinimumLength,IndexSort] = min(MapLen(:));
         end
+        
         function Len_map = GetEachLength(obj,xyz1,xyz2,Reso)
             Len_map = zeros(size(xyz2,1),size(xyz1,1));
             for n = 1:size(xyz1,1)
@@ -2227,7 +2252,7 @@ classdef Segment_Functions
                     p(n) = ind(1);                    
                 elseif numel(P) > 1
 %                     error('Same Point are existing in Input Segment')
-                    warning('Same Point are existing in Input Segment')
+%                     warning('Same Point are existing in Input Segment')
                     p(n) = P(1);
                 else
                     p(n) = P;
@@ -2776,9 +2801,42 @@ classdef Segment_Functions
             end
         end
         
-         %% use it ??
-        function [Radius,Center] = SphereFit(~,xyz)
-           [Center,Radius] = SphereFitByLeastSquares(xyz);
+         %% Sphere Fitting (Ref. Alan Jennings, University of Dayton)
+        function [Radius,Center] = SphereFit(~,X)
+           % [Radius,Center] = SphereFit(~,XYZ)
+           % Original function is SphereFitByLeastSquares by Alan Jennings, University of Dayton
+           
+           % this fits a sphere to a collection of data using a closed form for the
+            % solution (opposed to using an array the size of the data set). 
+            % Minimizes Sum((x-xc)^2+(y-yc)^2+(z-zc)^2-r^2)^2
+            % x,y,z are the data, xc,yc,zc are the sphere's center, and r is the radius
+            % Assumes that points are not in a singular configuration, real numbers, ...
+            % if you have coplanar data, use a circle fit with svd for determining the
+            % plane, recommended Circle Fit (Pratt method), by Nikolai Chernov
+            % http://www.mathworks.com/matlabcentral/fileexchange/22643
+            % Input:
+            % X: n x 3 matrix of cartesian data
+            % Outputs:
+            % Center: Center of sphere 
+            % Radius: Radius of sphere
+            % Author:
+            % Alan Jennings, University of Dayton
+            A=[mean(X(:,1).*(X(:,1)-mean(X(:,1)))), ...
+                2*mean(X(:,1).*(X(:,2)-mean(X(:,2)))), ...
+                2*mean(X(:,1).*(X(:,3)-mean(X(:,3)))); ...
+                0, ...
+                mean(X(:,2).*(X(:,2)-mean(X(:,2)))), ...
+                2*mean(X(:,2).*(X(:,3)-mean(X(:,3)))); ...
+                0, ...
+                0, ...
+                mean(X(:,3).*(X(:,3)-mean(X(:,3))))];
+            A=A+A.';
+            B=[mean((X(:,1).^2+X(:,2).^2+X(:,3).^2).*(X(:,1)-mean(X(:,1))));...
+                mean((X(:,1).^2+X(:,2).^2+X(:,3).^2).*(X(:,2)-mean(X(:,2))));...
+                mean((X(:,1).^2+X(:,2).^2+X(:,3).^2).*(X(:,3)-mean(X(:,3))))];
+
+            Center=(A\B).';
+            Radius=sqrt(mean(sum([X(:,1)-Center(1),X(:,2)-Center(2),X(:,3)-Center(3)].^2,2)));
         end
         %% developing now...
         function TL = TrackingLength(obj,xyz,Reso,CenterInd)

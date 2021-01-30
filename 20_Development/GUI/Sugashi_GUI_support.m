@@ -56,7 +56,7 @@ classdef Sugashi_GUI_support
 %                dummy2 : 
 %                       WindowMouseData „ÅÆ„Éó„É≠„Éë„ÉÜ„Ç£:
 % 
-%                            Source: [1ÔøΩ?1 Figure]
+%                            Source: [1?øΩ?1 Figure]
 %                         EventName: 'WindowMouseRelease'
                
                
@@ -220,7 +220,7 @@ classdef Sugashi_GUI_support
            
            function WindowButtonFcn(FigureH,MouseData)
                 % WindowMouseData „ÅÆ„Éó„É≠„Éë„ÉÜ„Ç£:
-                %   Source: [1ÔøΩ?1 Figure]
+                %   Source: [1?øΩ?1 Figure]
                 %   EventName: 'WindowMouseRelease'
                if ~strcmpi('matlab.graphics.primitive.Image',class(get(FigureH,'CurrentObject'))) 
                    return
@@ -689,17 +689,17 @@ classdef Sugashi_GUI_support
 %                 'Style','popup',...
 %                 'Units','Normalized',...
 %                 'Position',SEGEditor_SortDiameterPopup,...
-%                 'String',{'Diameter‚Üìascend','DiameterÔøΩ? descend'});
+%                 'String',{'Diameter‚Üìascend','Diameter?øΩ? descend'});
 %             H.SEGEditor_SortLenghtPopup  = uicontrol(H.ControllerA,...
 %                 'Style','popup',...
 %                 'Units','Normalized',...
 %                 'Position',SEGEditor_SortLengthPopup,...
-%                 'String',{'Length‚Üìascend','LengthÔøΩ? descend'});
+%                 'String',{'Length‚Üìascend','Length?øΩ? descend'});
 %             H.SEGEditor_SortVolumePopup  = uicontrol(H.ControllerA,...
 %                 'Style','popup',...
 %                 'Units','Normalized',...
 %                 'Position',SEGEditor_SortVolumePopup,...
-%                 'String',{'Volume‚Üìascend','VolumeÔøΩ? descend'});
+%                 'String',{'Volume‚Üìascend','Volume?øΩ? descend'});
 
             %% SEGEditor_WriteDataButton
             H.SEGEditor_WriteDataButton = uicontrol(H.ControllerA,...
@@ -1362,6 +1362,8 @@ classdef Sugashi_GUI_support
                 'Label','Perspective');
             H.Panel3_CheckBeardInView = uimenu(H.Panel3,...
                 'Label','Check Beard in View');
+            H.Panel3_CheckAllInView = uimenu(H.Panel3,...
+                'Label','Check ALL in View');
             
             
             H.Sample = uimenu(fgh,'Label','Sample');

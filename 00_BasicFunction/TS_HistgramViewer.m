@@ -797,6 +797,7 @@ Out.Image = NormalizedImage;
 Out.HistMap = HistMap;
 
 
+
 xls_matrix = num2cell(cat(2,ActualMin,ActualMax,Clim,Depth,Time,Channels));
 STR = cat(2,{'Min'},{'Max'},{'Signal'},{'Noise'},{'Depth(Dim3)'},{'Time(Dim4)'},{'Channels(Dim5)'});
 whos xls_matrix STR
