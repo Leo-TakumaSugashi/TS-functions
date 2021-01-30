@@ -1,4 +1,10 @@
 function varargout = SEGview(varargin)
+% varargout = SEGview(varargin)
+% SEGview(SEG)
+% SEGview(SEG,{structure_name})
+% SEGview(axh,SEG,...)
+% handle = SEGview(...)
+% 
 % see also Sugashi_ReconstructGroup
 V = Sugashi_ReconstructGroup;
 [axh,SEG,Type] = input_param(varargin{:});
