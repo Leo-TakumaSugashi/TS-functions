@@ -6,7 +6,7 @@ function varargout = TS_3dmipviewer(data,varargin)
 % <For example...>
 % load mri
 % TS_3dslider(squeeze(D))
-MaximumSiz = 512;
+MaximumSiz = 1024;
 MinimumSiz = 64;
 data = squeeze(data);
 if or(ndims(squeeze(data))>4,ismatrix(data))
@@ -242,6 +242,9 @@ ind = 0:10:360;
 Ind = [0 0 0 0 0 0 0 0 0 0  ind 0 0 ind 0 0 0 0 0 0 0];
 FaiInd = [90:-10:0 repmat(0,[1 length(ind)]),...
     10 20 repmat(30,[1 length(ind)]) 40:10:90 90];
+% Ind = interp1(Ind,linspace(1,length(Ind),length(Ind)*2+1));
+% FaiInd = interp1(FaiInd,linspace(1,length(FaiInd),length(FaiInd)*2+1));
+
 if length(Ind) ~= length(FaiInd)
     disp('erroroooooooo...')
     return

@@ -29,18 +29,18 @@ end
 
 %% initilize
 Length = round(Length / Reso); %% um --> pixels
-Type_interp = 'linear';
+% Type_interp = 'linear';
 
 %% Main Function
 % theta = flip(0:Step_rotation:Max_rotation,2);
 
 n = 1;
 [xp,yp] = GetIndex(Center,theta(n),Length);
-vp = interp2(double(im),xp,yp,Type_interp);
+% vp = interp2(double(im),xp,yp,Type_interp);
 % vpmatrix = zeros(length(vp),length(theta));
-Xp = zeros(length(vp),length(theta));
+Xp = zeros(length(xp),length(theta));
   Xp(:,n) = xp;
-Yp = zeros(length(vp),length(theta));
+Yp = zeros(length(xp),length(theta));
   Yp(:,n) = yp;
 
 % vpmatrix(:,n) = vp;

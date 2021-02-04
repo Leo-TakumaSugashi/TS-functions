@@ -1,4 +1,6 @@
 classdef Segment_GUI
+    % core function of GUI for Vascular Tree Structure(=Segment)
+    %
     % ver1.55 , almost function(uicontroll,in panels) is Done,
     % But, in real case, FOV 455.88x455.88x800 um, is too heavy for
     % rendering.(may be too many text and plot data)
@@ -22,7 +24,7 @@ classdef Segment_GUI
     %      add to enable to view 4-D imaging SEG data
     %      edit 2020. 5-30th Arp. to ... by Sugashi
     % 
-    % version LeoTS...v0p1
+    % version 1.7.0 LeoTS...v0p1
     % SEGview add slice type(==Time dimmension)
     %     {'same'                   }
     %     {'Type'                   }
@@ -40,10 +42,16 @@ classdef Segment_GUI
     % all of type might be able to use in SEGview(SEG,'string')
     %
     %
-    % version v0.2
+    % version v1.7.1
     % Name to Segment_GUI
     % add chose all in view(panel 3)
-
+    %
+    % version 1.7.2
+    %  version information add properties.
+    %  Modified RecheckSEG func.
+    %
+    % version 1.7.3
+    %  Modified RecheckSEG_TextONOFF func.
    properties
       Name(1,:) char
       Resize(1,:) char {mustBeMember(Resize,{'on','off','Done'})} = 'on'
@@ -111,7 +119,7 @@ classdef Segment_GUI
       
       GUIHandles
       %%
-      ViewSupport = Sugashi_ReconstructGroup
+      ViewSupport = Reconstruction_Group
       GUISupport = Sugashi_GUI_support
       SEGFcn = Segment_Functions
       SEG_Connect_Force(1,1) logical = false;
@@ -121,7 +129,7 @@ classdef Segment_GUI
       ChaseSegment
       
       Tag
-      Version = 0.2
+      Version = '1.7.3'
       UserData
    end
    methods
@@ -356,7 +364,8 @@ classdef Segment_GUI
 %           VersionNum = VersionNum(IndVer(3)+2:end);
 %           VersionNum(VersionNum=='p') = '.';
           VersionNum = obj.Version;
-          H.figure.Name = ['Segment Editor (ver. '  num2str(VersionNum,'%.1f')  ')'];
+%           H.figure.Name = ['Segment Editor (ver. '  num2str(VersionNum,'%.1f')  ')'];
+          H.figure.Name = ['Segment Editor (ver. '  VersionNum  ')'];
           H.figure.Colormap = gray(256);
           H.figure.Resize = obj.Resize;
           fprintf(['    Starting :' H.figure.Name '\n\n\n'])
@@ -1945,6 +1954,10 @@ classdef Segment_GUI
               if max(ishandle(H.SEGview_Text))
                   delete(H.SEGview_Text)
               end
+              if H.SEGview_textONOFF.Value == false
+                  fprintf(' Nothing to do.\n## ## ## ## ## ## ## ## ## ## ## ## \n')
+                  return
+              end
               XLim = H.View3DAxes.XLim;
               YLim = H.View3DAxes.YLim;
               ZLim = H.View3DAxes.ZLim;
@@ -2636,6 +2649,7 @@ classdef Segment_GUI
         %% Edit
           uimh = uimenu(MenuHandle.Edit,'Label','Colormap');
           Clabel = {'ColormapRed','ColormapBlue','ColormapGreen',...
+                'Class map',...
                 'gray','parula','kjet','kjetw','jet','hsv','hot','cool','spring',...
                 'summer','autumn','winter','bone','copper','pink','lines',...
                 'flag'};
@@ -2643,7 +2657,12 @@ classdef Segment_GUI
               h = uimenu(uimh,'Label',Clabel{n},'Callback',@Callback_Colormap);
           end
           function Callback_Colormap(oh,~)
-              fgh.Colormap = feval(oh.Label,256);
+              if strcmpi('Class map',oh.Label)
+                  ts = tsmaps;
+                  fgh.Colormap = ts.class_map;
+              else
+                  fgh.Colormap = feval(oh.Label,256);
+              end
           end
           
           uimh = uimenu(MenuHandle.Edit,'Label','SEGview Label');

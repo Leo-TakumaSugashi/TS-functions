@@ -882,6 +882,177 @@ classdef Reconstruction_Group
             view(axh,3)
         end
         
+        %% interpolation/ Crop       
+        
+        function Index = createLineMaskIndex3D(~,outSiz,p1,p2)
+            % Index = createLineMask3D(outSiz,p1,p2)
+            % Input : 
+            %    outSiz  : output size (= size(Image), such as [Y,X,Z]).
+            %    p1,p2   : [X,Y,Z] , vecotor
+            % Output:
+            %    Index   : Index of true; = sub2ind(~)
+                
+            p1 = round(p1);
+            p2 = round(p2);
+            Numel = max(diff(cat(1,p1,p2),1,1));
+            xdata = round(linspace(p1(1),p2(1),Numel));
+            ydata = round(linspace(p1(2),p2(2),Numel));
+            zdata = round(linspace(p1(3),p2(3),Numel));
+            Index = sub2ind(outSiz,ydata,xdata,zdata);
+        end
+        
+        function [outImage,pLen] = Interp_Pointdata_withNormTheta(obj,...
+                Image,Reso,SEG,ID,varargin)
+            if ismatrix(Image)
+                Reso(3) = 0;
+                Image = single(Image);
+            end
+            
+            Sf = Segment_Functions;
+            Sf.Segment = SEG;
+            Pdata = Sf.Pointdata_ID(ID);
+            
+            if nargin ==5
+                Len = max(Pdata.Diameter);
+            else
+                Len = varargin{1};
+            end
+            try
+                 NormTheta = Pdata.NormThetaXY;
+            catch 
+                SEG.Pointdata = Pdata;
+                SEG = Sf.AddNormThetaXY(SEG);
+                NormTheta = SEG.Pointdata(1).NormThetaXY;
+            end
+            xyz_real = (Pdata.PointXYZ-1) .*SEG.ResolutionXYZ;
+            xyz = (xyz_real./Reso)+1;
+            n = 1;
+            
+            [xq,yq] = obj.GetLinePro2mesh(xyz(n,[1 2]),Len,Reso,NormTheta(n));
+            outImage = zeros(length(xq),size(xyz,1));
+            Xq = outImage;
+            Yq = outImage;
+            Zq = outImage;
+            Xq(:,1) = xq;
+            Yq(:,1) = yq;
+            Zq(:,1) = xyz(n,3);
+            for n = 2:size(xyz,1)
+                [xq,yq] = obj.GetLinePro2mesh(xyz(n,[1 2]),Len,Reso,NormTheta(n));
+                Xq(:,n) = xq;
+                Yq(:,n) = yq;
+                Zq(:,n) = xyz(n,3);
+            end
+            keyboard
+            if ismatrix(Image)
+                outImage = interp2(Image,Xq,Yq);
+            else
+                outImage = interp3(single(Image),Xq,Yq,Zq);
+            end
+            plen = Sf.xyz2plen(Pdata.PointXYZ,SEG.ResolutionXYZ);
+            pLen = cumsum(plen);
+        end
+        
+        function [Xp,Yp,theta] = GetLinePro2mesh(obj,Center,Length,Reso,varargin)
+            % 
+            % [Xp,Yp,theta] = GetLinePro2mesh(Center,Length,Reso,varargin)%
+            %% Original , Edit 11th jun. 2019            % 
+            %               TS_GetLineProfileTheta_v2...
+            % Center = [X Y]
+            % Length =  um / unit
+            % Reso = [xy]; %% Resolution(XY), Scalar
+            % varargin{1} = theta
+            % 
+            % edit varargin input type to theta, 
+            % 2019 11 13
+            
+            %% check input
+            if nargin == 5
+                theta = varargin{1};
+            else    
+                Step_rotation = pi/(180);
+                Max_rotation = pi - Step_rotation;
+                theta = 0:Step_rotation:Max_rotation;
+            end
+            if length(Reso)>1
+                if Reso(1) ~=Reso(2)
+                    error('Input Resolution of X and Y is NOT Equal....')
+                end
+                Reso = Reso(1);
+            end
+
+
+            %% initilize
+            Length = round(Length / Reso); %% um --> pixels
+%             Type_interp = 'linear';
+
+            %% Main Function
+            % theta = flip(0:Step_rotation:Max_rotation,2);
+
+            n = 1;
+            [xp,yp] = obj.GetIndex(Center,theta(n),Length);
+%             vp = interp2(double(im),xp,yp,Type_interp);
+            % vpmatrix = zeros(length(vp),length(theta));
+            Xp = zeros(length(xp),length(theta));
+              Xp(:,n) = xp;
+            Yp = zeros(length(xp),length(theta));
+              Yp(:,n) = yp;
+
+            % vpmatrix(:,n) = vp;
+
+            for n = 2:length(theta)
+                [xp,yp] = obj.GetIndex(Center,theta(n),Length);
+                Xp(:,n) = xp;
+                Yp(:,n) = yp;
+            end
+            % vpmatrix = interp2(double(im),Xp,Yp,Type_interp);
+
+
+        end
+
+        % % GetIndex
+        function [xp,yp] = GetIndex(~,Center,theta,Length) 
+            % % use in GetLinePro2mesh
+            fx1 = @(x,theta,Length) cos(pi+theta)*Length/2+x;
+            fx2 = @(x,theta,Length) cos(theta)*Length/2+x;
+            fy1 = @(x,theta,Length) sin(pi+theta)*Length/2+x;
+            fy2 = @(x,theta,Length) sin(theta)*Length/2+x;
+
+            x1 = fx1(Center(1),theta,Length);
+            x2 = fx2(Center(1),theta,Length);
+            y1 = fy1(Center(2),theta,Length);
+            y2 = fy2(Center(2),theta,Length);
+
+            RadNum =  ceil(Length/2);
+            pnum = RadNum * 2 + 1;
+
+            if (x2-x1) == 0
+            %     xp = ones(1,Length+1) * x1;
+                xp = ones(1,pnum) * x1;
+            else
+            %     xp = x1:(x2-x1)/Length:x2;
+                %     xp = x1:(x2-x1)/Length:x2;
+                xp1 = flip(linspace(Center(1),x1,RadNum+1) ,2);
+                xp2 = linspace(Center(1)+abs(diff(xp1(1:2))),x2,RadNum) ;
+                xp = cat(2,xp1,xp2);
+            end
+
+            if (y2-y1) == 0
+            %     yp = ones(1,Length+1) * y1;
+                yp = ones(1,pnum) * y1;
+            else
+            %     yp = y1:(y2-y1)/Length:y2;
+                yp1 = flip(linspace(Center(2),y1,RadNum+1) ,2);
+                yp2 = linspace(Center(2)+abs(diff(yp1(1:2))),y2,RadNum) ;
+                yp = cat(2,yp1,yp2);
+            end
+        end
+
+        
+        
+        
+        
+        %% for check program
+        
         function Mov = CheckNormLine(obj,SEG)
             Sf = Segment_Functions;
             p = obj.SEGview_Limit([],SEG,'Fai_AngleFromAxisZ');
@@ -1041,6 +1212,8 @@ classdef Reconstruction_Group
                 delete(p2),drawnow
             end
         end
+        
+    
         
     end
 end

@@ -5,13 +5,19 @@ classdef Segment_Functions
     %
     % Jan. 29th, 2021 Sugashi
     %  Edited RecheckType (Branch to Branch,  Branch to End, End to End or Others)
-    
+    %
+    % Feb. 1-3rd. 2021 Sugashi
+    %  add Euclidian distance from AorV
     
     properties
         Segment
+        Image(:,:,:,:,:)
+        Image_Reso(1,3)
         StartEndXYZ(2,3,:)
         MesureLine = @TS_Measure
         Chase_Limit = 10
+        Class_Artery = {'Art.','SA','PA'}
+        Class_Vein = {'Vein','SV','PV'}
         Tracking_Distance_Limit = 10
         RFitting_WindowSize = 20 % um
         RFitting_MaxDistance = 10
@@ -27,6 +33,7 @@ classdef Segment_Functions
         EllipticLengthLim = 5; %% just for 2D
         EllipticFaiLim = pi/4; % [radian], for 3D
         UpDate = '2021/30th/Jan., by Leo Sugashi Takuma'
+        Version = '2.0.2'
         UserData
     end
     methods
@@ -431,6 +438,18 @@ classdef Segment_Functions
             SEG.SegmentFunctionLastUpdate = obj.UpDate;
             
         end
+        
+        
+        %% alias
+        function Pdata = Pointdata_ID(obj,ID)
+            ind = obj.ID2Index(ID);
+            if isnan(ind)
+                Pdata = nan;
+                return
+            end
+            Pdata = obj.Segment.Pointdata(ind);
+        end
+        
         %% Main Function
         function NewSEG = Connect(obj,SEG,varargin)
             % NewSEG = __.Connect(SEG,Pairs,{'normal','--force','-f'})
@@ -466,8 +485,7 @@ classdef Segment_Functions
             end
             NewSEG.Pointdata = NewPdata;
         end
-        function NewPdata = ...
-                Connect_Pointdata(obj,SEG,Ind,ForceConnecting)
+        function NewPdata = Connect_Pointdata(obj,SEG,Ind,ForceConnecting)
             Pdata = SEG.Pointdata(Ind);
             [Startindex,SegmentType] = obj.Find_EndSEG(Pdata);
 %             catID = cat(1,Pdata.ID);
@@ -1483,10 +1501,47 @@ classdef Segment_Functions
         
         
         function NewSEG = Euclid_Length_from_arteriovenous(obj,SEG)
-            Art_class = {'Art.','SA','PA'};
-            Vein_class = {'Vein','SV','PV'};
+            obj.Segment = SEG;
+            [Aid,Vid,Aind,Vind] = obj.FindID_Class_arteriovenous();
+            if and(isempty(Aid),isempty(Vid))
+                error('Empty Class of arteriovenous.')
+            end
+            
+            %% setup / clear value
+            Pdata = obj.Segment.Pointdata;
+            for n = 1:length(Pdata)
+                N = size(Pdata(n).PointXYZ,1);
+                Pdata(n).EuclidLength_Art = nan(N,1,'single');
+                Pdata(n).EuclidLength_Vein = nan(N,1,'single');
+            end
+            obj.Segment.Pointdata = Pdata;
+            % % Art.
+            
+            
+            % % Vei.
+            
+            
+            NewSEG = obj.Segment;
         end
-        
+        function Pdata = Euclid_Length_1step(obj,Aind,Vind)
+            obj.Chase_Limit = 2;
+            Pdata = obj.Segment.Pointdata;
+            ClassA = obj.Class_Artery;
+            for n = 1:length(Aind)
+                xyz = Pdata(Aind(n)).PointXYZ(1,:);
+                chase_data_A = obj.Chase(obj.Segmnet,xyz);
+                data = chase_data_A.Chase;
+                
+                
+                
+                
+                
+                
+                
+                
+                
+            end
+        end
         
         
         %%% for capillaro
@@ -2130,9 +2185,9 @@ classdef Segment_Functions
                 chase_FlipTFs = FlipTF;
                 IDs = [];
                 FlipTFs = [];
-                fprintf(['# # # # # # # # # # # # # # # # # # # # \n',...
-                    '# # Starting "Chasing Segmentations"# # \n',...
-                    '# # # # # # # # # # # # # # # # # # # # \n'])
+%                 fprintf(['# # # # # # # # # # # # # # # # # # # # \n',...
+%                     '# # Starting "Chasing Segmentations"# # \n',...
+%                     '# # # # # # # # # # # # # # # # # # # # \n'])
             else
                 chase_index= [varargin{1}, find(SegInd)];
                 chase_FlipTFs = [varargin{2}, FlipTF];
@@ -2160,9 +2215,9 @@ classdef Segment_Functions
                         IDs,FlipTFs);
                 end
             else  %% End point
-                fprintf(['==== ==== ==== ==== \n No.' num2str(size(IDs,1)) '    Numels :' num2str(length(chase_index)) ' \n'])
-                fprintf(['   Indexs : ' num2str(chase_index) '\n'])
-                fprintf(['      IDs : ' num2str(reshape(catID(chase_index),1,[])) '\n'])
+%                 fprintf(['==== ==== ==== ==== \n No.' num2str(size(IDs,1)) '    Numels :' num2str(length(chase_index)) ' \n'])
+%                 fprintf(['   Indexs : ' num2str(chase_index) '\n'])
+%                 fprintf(['      IDs : ' num2str(reshape(catID(chase_index),1,[])) '\n'])
                 IDs = cat(1,IDs,{catID(chase_index)});
                 FlipTFs = cat(1,FlipTFs,{chase_FlipTFs});
             end            
@@ -2266,6 +2321,35 @@ classdef Segment_Functions
             end
             if ~max(BranchIndex==size(xyz,1))
                 AddEdgeIndex = [AddEdgeIndex, size(xyz,1)];
+            end
+        end
+        
+        
+        function [Aid,Vid,Aind,Vind] = FindID_Class_arteriovenous(obj)
+            % [Aid,Vid,Aind,Vind] = FindID_Class_arteriovenous()
+            % 
+            % Use This.Segment
+            % Output :
+            % Aid, Vid are Artery ID and Vein ID.
+            % Aind, Vind, are Artery index and Vein index.
+            Pdata = obj.Segment.Pointdata;
+            Art_class = obj.Class_Artery;
+            Vein_class = obj.Class_Vein;
+            Aid = [];
+            Vid = [];
+            Aind = [];
+            Vind = [];
+            for n = 1:length(Pdata)
+                if Pdata(n).ID < 0
+                    continue
+                end
+                if max(strcmpi(Pdata(n).Class,Art_class))
+                    Aid = cat(1,Aid,Pdata(n).ID);
+                    Aind = cat(1,Aind,n);
+                elseif max(strcmpi(Pdata(n).Class,Vein_class))
+                    Vid = cat(1,Vid,Pdata(n).ID);
+                    Vind = cat(1,Vind,n);
+                end
             end
         end
         

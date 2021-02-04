@@ -190,7 +190,7 @@ classdef tsmaps
             Vmap = hsv2rgb(HSV);
             
             HSV = rgb2hsv(Amap);
-            HSV(:,3) = (cos(linspace(pi/24,pi*7/24,size(Amap,1))))';
+            HSV(:,3) = (cos(linspace(pi/3,size(Amap,1))))';
             Amap = hsv2rgb(HSV);
             
         end

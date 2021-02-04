@@ -8,7 +8,7 @@ classdef Sugashi_GUI_support
       FontSize = 9;
       RGBList = GetAllColorAsRGB
       mapnum(1,1) {mustBeNumeric} = 256
-      Editor = 'L.T.S.'
+      Editor = 'Leo Ttakuma Sugashi'
       Value
       UserData
    end
@@ -54,9 +54,9 @@ classdef Sugashi_GUI_support
                dummy2.EventName
 %                dummy1 figure
 %                dummy2 : 
-%                       WindowMouseData のプロパティ:
+%                       WindowMouseData ã�®ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£:
 % 
-%                            Source: [1?��?1 Figure]
+%                            Source: [1?¿½?1 Figure]
 %                         EventName: 'WindowMouseRelease'
                
                
@@ -219,8 +219,8 @@ classdef Sugashi_GUI_support
            end
            
            function WindowButtonFcn(FigureH,MouseData)
-                % WindowMouseData のプロパティ:
-                %   Source: [1?��?1 Figure]
+                % WindowMouseData ã�®ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£:
+                %   Source: [1?¿½?1 Figure]
                 %   EventName: 'WindowMouseRelease'
                if ~strcmpi('matlab.graphics.primitive.Image',class(get(FigureH,'CurrentObject'))) 
                    return
@@ -689,17 +689,17 @@ classdef Sugashi_GUI_support
 %                 'Style','popup',...
 %                 'Units','Normalized',...
 %                 'Position',SEGEditor_SortDiameterPopup,...
-%                 'String',{'Diameter↓ascend','Diameter?��? descend'});
+%                 'String',{'Diameterâ†“ascend','Diameter?¿½? descend'});
 %             H.SEGEditor_SortLenghtPopup  = uicontrol(H.ControllerA,...
 %                 'Style','popup',...
 %                 'Units','Normalized',...
 %                 'Position',SEGEditor_SortLengthPopup,...
-%                 'String',{'Length↓ascend','Length?��? descend'});
+%                 'String',{'Lengthâ†“ascend','Length?¿½? descend'});
 %             H.SEGEditor_SortVolumePopup  = uicontrol(H.ControllerA,...
 %                 'Style','popup',...
 %                 'Units','Normalized',...
 %                 'Position',SEGEditor_SortVolumePopup,...
-%                 'String',{'Volume↓ascend','Volume?��? descend'});
+%                 'String',{'Volumeâ†“ascend','Volume?¿½? descend'});
 
             %% SEGEditor_WriteDataButton
             H.SEGEditor_WriteDataButton = uicontrol(H.ControllerA,...
