@@ -737,7 +737,7 @@ classdef Reconstruction_Group
         end
         
         %% tube plot
-        function [x,y,z,CData] = Tubeplot(~,curve,r,n,ct)
+        function [x,y,z,CData] = Tubeplot(~,curve,r,n,ct,varargin)
         % Usage: [x,y,z,CData]=Tubeplot(curve,r,n,ct)
         % 
         % Tubeplot constructs a tube, or warped cylinder, along
@@ -777,6 +777,11 @@ classdef Reconstruction_Group
             end
             if nargin<5 || isempty(ct)
                 ct=0.5*r;
+            end
+            if nargin == 6
+                CData = varargin{1};
+            else
+                CData = r *2;
             end
 
 
@@ -819,7 +824,8 @@ classdef Reconstruction_Group
                 xyz(1:3,:,k+1)=repmat(curve(:,k),[1,n+1])+...
                     cfact.*repmat(r(k)*nvec,[1,n+1])...
                     +sfact.*repmat(r(k)*convec,[1,n+1]);
-                xyz(4,:,k+1) = r(k) * 2; %% radius to diameter
+%                 xyz(4,:,k+1) = r(k) * 2; %% radius to diameter
+                xyz(4,:,k+1) = CData(k); %% CData change
             end
             %finally, cap the ends:
             xyz(1:3,:,1)=repmat(curve(:,1),[1,n+1]);
@@ -832,7 +838,12 @@ classdef Reconstruction_Group
             z=squeeze(xyz(3,:,:));     
             CData=squeeze(xyz(4,:,:));     
         end
-        function [FV,p] = SEGdiam2TubePatch(obj,SEG)
+        function [FV,p] = SEGdiam2TubePatch(obj,SEG,varargin)
+            if nargin==2
+                Fname = 'Diameter';
+            else
+                Fname = varargin{1};
+            end
             Pdata = SEG.Pointdata;
             X = [];
             Y = [];
@@ -852,7 +863,17 @@ classdef Reconstruction_Group
                 D(isnan(D)) = 0;
                 R = D /2;
                 % % core function
-                [x,y,z,C] = obj.Tubeplot(xyz,R,CircNum);
+                if ~strcmpi(Fname,'Diameter')
+                    cdata = Pdata(n).(Fname);
+                    if isscalar(cdata)
+                        cdata = repmat(cdata,size(xyz,1));
+                    elseif size(cdata,2)>1
+                        cdata = cdata(:,1);
+                    end
+                else
+                    cdata = D;
+                end
+                [x,y,z,C] = obj.Tubeplot(xyz,R,CircNum,[],cdata);
                 X = cat(2,X,nan(size(x,1),1),x);
                 Y = cat(2,Y,nan(size(y,1),1),y);
                 Z = cat(2,Z,nan(size(z,1),1),z);
@@ -866,11 +887,18 @@ classdef Reconstruction_Group
             fvx.vertices = [];
             fvx.facevertexcdata = [];
         end
-        function p = ReconstructSEG(obj,axh,SEG)
+        function p = ReconstructSEG(obj,axh,SEG,varargin)
             %%
             %% having bag on SEGdim2Tube
             %%
-            fv = obj.SEGdiam2TubePatch(SEG);
+            if nargin==3
+                Fname = 'Diameter';
+            else
+                Fname = varargin{1};
+            end
+            
+            
+            fv = obj.SEGdiam2TubePatch(SEG,Fname);
             if isempty(axh)
                 figure,
                 axh = axes;

@@ -6,34 +6,39 @@ classdef Segment_Functions
     % Jan. 29th, 2021 Sugashi
     %  Edited RecheckType (Branch to Branch,  Branch to End, End to End or Others)
     %
-    % Feb. 1-3rd. 2021 Sugashi
+    % Feb. 1-6th, 2021 Sugashi
     %  add Euclidian distance from AorV
     
     properties
-        Segment
-        Image(:,:,:,:,:)
-        Image_Reso(1,3)
-        StartEndXYZ(2,3,:)
-        MesureLine = @TS_Measure
-        Chase_Limit = 10
-        Class_Artery = {'Art.','SA','PA'}
-        Class_Vein = {'Vein','SV','PV'}
-        Tracking_Distance_Limit = 10
-        RFitting_WindowSize = 20 % um
-        RFitting_MaxDistance = 10
-        StraghtAS = 30 % um
-        BsplineFunc = @HS_B_Spline_ver19Alpha
-        BsplineDim = 5
-        BsplineFistDownSizeRatio = 1/3;
         
-        ResamplingRate = 0.5; %% [um],it will be smaller between SEG.ResolutionXYZ
-        ResamplingDenoiseWindowSize = 11 %% [um],see also obj.Resampling
-        NormReferenceLength  = 3; %% 1>, uint class
-        FaiReferenceLength = 10; %% [um];
-        EllipticLengthLim = 5; %% just for 2D
-        EllipticFaiLim = pi/4; % [radian], for 3D
-        UpDate = '2021/30th/Jan., by Leo Sugashi Takuma'
-        Version = '2.0.2'
+        Segment  % Main data. Vasculature Segment. ( = TS_AutoSegmnet_vNewest())
+        StartEndXYZ(2,3,:)  % using in self.Chase()
+        MesureLine = @TS_Measure % function TS_Measure
+        
+        Chase_Limit(1,1) = 10 % Using in self.Chase(). Limit of ID, but having bags.
+        
+        Class_Artery = {'Art.','SA','PA'} % Definition class names as artery.
+        Class_Vein = {'Vein','SV','PV'} % Definition class names as vein.        
+        
+        Tracking_Distance_Limit(1,1) = 10 % Limit of distans to Trak time-scopic data. Default is 10 [um]
+        
+        RFitting_WindowSize(1,1) = 20 % How long use in caliculate "Radius" on each point. Default is 20 [um]
+        RFitting_MaxDistance(1,1) = 10 % Dump of old function used. or Developer foget 
+        StraghtAS(1,1) = 30 % Definition as "Straght" by how over "Radius" . Default is 30 [um]        
+        
+        BsplineFunc = @HS_B_Spline_ver19Alpha % Alias of Bspline function (c) Hiroki Suzuki.
+        BsplineDim = 5 % Dimmention of bspline. Default is 5.
+        BsplineFistDownSizeRatio = 1/3; % 1st donw size ratio in bspline. default is 1/3.
+        
+        ResamplingRate(1,1) = 0.5; %% Definition of Resampling Rate [um]. Default is 0.5 um. it should be smaller than minimum of self.Segment.ResolutionXYZ
+        ResamplingDenoiseWindowSize(1,1) = 11 %% Definition of average window size in self.SmoothingSEG.[um],default is 11.see also self.Resampling
+        NormReferenceLength(1,1)  = 3; %% Definition of window width in normal vector calculation. The default is 3 um. This should exceed a sampling ratio of at least twice.
+        FaiReferenceLength(1,1) = 10; %% Definition of window width in Fai degree calculation (between each vecotor and z-axis). Default is 10 um.
+        EllipticLengthLim = 5; %% Reference value to be approximated by an ellipse judged by the segment length. just for 2D
+        EllipticFaiLim = pi/4; % Reference value to be approximated by an ellipse judged by the Fai.[radian], for 3D
+        
+        LastDate = '2021/6th/Feb., by Leo Sugashi Takuma'
+        Version = '2.1.0'
         UserData
     end
     methods
@@ -222,6 +227,40 @@ classdef Segment_Functions
                     Pdata(n).OriginalPointXYZ= Pdata(n).PointXYZ; 
                 end
             end
+            
+            % % for euclid length form arteriovein
+            if ~isfield(Pdata,'EuclidLength_Arteries') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).EuclidLength_Arteries = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                end
+            end
+            if ~isfield(Pdata,'GenerationsNum_Arteries') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).GenerationsNum_Arteries = nan(1,1,'like',single(1)); 
+                end
+            end
+            if ~isfield(Pdata,'EuclidLength_Veins') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).EuclidLength_Veins = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                end
+            end
+            if ~isfield(Pdata,'GenerationsNum_Veins') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).GenerationsNum_Veins = nan(1,1,'like',single(1)); 
+                end
+            end
+            if ~isfield(Pdata,'EuclidLength_ArterioVenous') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).EuclidLength_ArterioVenous = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                end
+            end
+            if ~isfield(Pdata,'GenerationsNum_ArterioVenous') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).GenerationsNum_ArterioVenous = nan(1,1,'like',single(1)); 
+                end
+            end
+            
+                    
             
             %% including TimeData
             mt = 1; %% maximum time data numel 
@@ -435,7 +474,7 @@ classdef Segment_Functions
             if ~isfield(SEG,'SegEditor')
                 SEG.SegEditor = [];
             end
-            SEG.SegmentFunctionLastUpdate = obj.UpDate;
+            SEG.SegmentFunctionLastUpdate = obj.LastDate;
             
         end
         
@@ -801,7 +840,7 @@ classdef Segment_Functions
             Ztf = xyz(3) == cat_xyz(:,3);
             TF = and( and( Xtf, Ytf), Ztf);
             if ~max(TF)
-                error('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
+                warning('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
             end           
             
             catID = cat(1,Pdata.ID);            
@@ -814,7 +853,17 @@ classdef Segment_Functions
             Index = squeeze(obj.FindSameStartEndXYZ(xyz));
             [y,x] = find(Index);
             StartID = catID(x);
-            FlipTF = y ==2;            
+            FlipTF = y ==2; 
+            if isempty(StartID)
+                warning('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
+                try
+                    check = obj.BranchInXYZ(xyz,cat_xyz,obj.Segment.ResolutionXYZ);
+                catch err
+                    error(err.message)
+                end
+                StartID = check;
+                FlipTF = false;
+            end
         end  
         function NewSEG = CalculateSphereFitRadius(obj,SEG)
             Pdata = SEG.Pointdata;
@@ -1503,43 +1552,177 @@ classdef Segment_Functions
         function NewSEG = Euclid_Length_from_arteriovenous(obj,SEG)
             obj.Segment = SEG;
             [Aid,Vid,Aind,Vind] = obj.FindID_Class_arteriovenous();
+%             NewSEG = [];
+%             SEG.Pointdata= SEG.Pointdata(Aind);
+%             SEGview(SEG)
+%             return
             if and(isempty(Aid),isempty(Vid))
                 error('Empty Class of arteriovenous.')
             end
-            
             %% setup / clear value
             Pdata = obj.Segment.Pointdata;
+%             XYZ_matrix = zeros(2,3,length(Pdata));
+%             for n = 1:length(Pdata)
+%                 XYZ_matrix(1,:,n) = Pdata(n).PointXYZ(1,:);
+%                 XYZ_matrix(2,:,n) = Pdata(n).PointXYZ(end,:);
+%             end
+%             obj.StartEndXYZ = XYZ_matrix;
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            obj.Chase_Limit = 1;
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % % Art.
+            XYZ = zeros(2*length(Aind),3);
+            for n = 1:length(Aind)
+                XYZ(n*2-1,:) = Pdata(Aind(n)).PointXYZ(1,:);
+                XYZ(n*2,:) = Pdata(Aind(n)).PointXYZ(end,:);
+            end
+            XYZ = obj.Delete_SamePointXYZ(XYZ);
+            fprintf('   ####  Euclid Length from Arteries #### \n')
+            obj = obj.Euclid_Length_loop(XYZ,'Art.');
+            % % Vei.
+            XYZ = zeros(2*length(Vind),3);
+            for n = 1:length(Vind)
+                XYZ(n*2-1,:) = Pdata(Vind(n)).PointXYZ(1,:);
+                XYZ(n*2,:) = Pdata(Vind(n)).PointXYZ(end,:);
+            end
+            XYZ = obj.Delete_SamePointXYZ(XYZ);
+            fprintf('   ####  Euclid Length from Veins #### \n')
+            obj = obj.Euclid_Length_loop(XYZ,'Vein');
+            
+            % % ArterioVenous
+            Pdata = obj.Segment.Pointdata;
             for n = 1:length(Pdata)
-                N = size(Pdata(n).PointXYZ,1);
-                Pdata(n).EuclidLength_Art = nan(N,1,'single');
-                Pdata(n).EuclidLength_Vein = nan(N,1,'single');
+                a_dis = Pdata(n).EuclidLength_Arteries;
+                v_dis = Pdata(n).EuclidLength_Veins;
+                check = nanmin(a_dis,v_dis) == v_dis;
+                a_dis(a_dis<1) = 1;
+                v_dis(v_dis<1) = -1;
+                a_v_dis = a_dis;
+                a_v_dis(check) = abs(v_dis(check))*(-1);
+                Pdata(n).EuclidLength_ArterioVenous = a_v_dis;
+                a_gen = Pdata(n).GenerationsNum_Arteries;
+                v_gen = Pdata(n).GenerationsNum_Veins;
+                Pdata(n).GenerationsNum_ArterioVenous = nanmin(a_gen,v_gen);
             end
             obj.Segment.Pointdata = Pdata;
-            % % Art.
-            
-            
-            % % Vei.
-            
             
             NewSEG = obj.Segment;
         end
-        function Pdata = Euclid_Length_1step(obj,Aind,Vind)
-            obj.Chase_Limit = 2;
-            Pdata = obj.Segment.Pointdata;
-            ClassA = obj.Class_Artery;
-            for n = 1:length(Aind)
-                xyz = Pdata(Aind(n)).PointXYZ(1,:);
-                chase_data_A = obj.Chase(obj.Segmnet,xyz);
-                data = chase_data_A.Chase;
-                
-                
-                
-                
-                
-                
-                
-                
-                
+        
+        function obj = Euclid_Length_loop(obj,XYZ,Class)
+            for np = 1:size(XYZ,1)
+                xyz = XYZ(np,:);
+                try
+                    chase_data = obj.Chase(obj.Segment,xyz);
+                catch err
+                    disp(err.message)
+                    fprintf('   .. Go to next.. \n')
+                    continue
+                end
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shoud be
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% change >
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% with Chase()
+                data = chase_data.Chase;
+                Gen = [];
+                IDs = [];
+                FTF = [];
+                for n = 1:length(data)
+                    Gen = cat(2,Gen, 1:length(data(n).IDs));
+                    IDs = cat(1,IDs, data(n).IDs);
+                    FTF = cat(2,FTF, data(n).FlipTFs);
+                end
+                IDs = IDs';
+                DeleteInd = [];
+                for n = 1:length(Gen)-1
+                    TF1 = Gen(n) == Gen(n+1:end);
+                    TF2 = IDs(n) == IDs(n+1:end);
+                    TF3 = FTF(n) == FTF(n+1:end);
+                    TF = and(and(TF1,TF2),TF3);
+                    p = find(TF);
+                    if isempty(p)
+                        continue
+                    end
+                    DeleteInd = cat(2,DeleteInd, p+n);
+                end
+                Gen(DeleteInd) = [];
+                IDs(DeleteInd) = [];
+                FTF(DeleteInd) = [];
+                fprintf([TS_num2strNUMEL(np,3)  '/' num2str(size(XYZ,1)) ' '])
+                TS_WaiteProgress(0)
+                for k = 1:length(IDs)
+                    Ind = obj.ID2Index(IDs(k));
+                    obj = obj.Euclid_Length_core(Ind,FTF(k),Gen(k),Class);
+                    TS_WaiteProgress(k/length(IDs))
+                end
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shoud be
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% change /
+            end
+        end
+        
+        function obj = Euclid_Length_core(obj,ind,FlipTF,GenerationsNum,Class)
+            
+            Pdata = obj.Segment.Pointdata(ind);
+            Reso = obj.Segment.ResolutionXYZ;
+            if max(strcmpi(Class,obj.Class_Artery))
+                EuName = 'EuclidLength_Arteries';
+                GeName = 'GenerationsNum_Arteries';
+                skip_TF = max(strcmpi(Pdata.Class,obj.Class_Artery));
+            elseif max(strcmpi(Class,obj.Class_Vein))
+                EuName = 'EuclidLength_Veins';
+                GeName = 'GenerationsNum_Veins';
+                skip_TF = max(strcmpi(Pdata.Class,obj.Class_Vein));
+            else
+                error('input class is not correct or disexist.')
+            end
+            xyz = Pdata.PointXYZ;
+            if skip_TF
+                Pdata.(EuName) = zeros(size(xyz,1),1,'single');
+                Pdata.(GeName) = 1;
+            else
+                if FlipTF
+                    xyz = flip(xyz,1);
+                end
+                plen = obj.xyz2plen(xyz,Reso);
+                Dist = cumsum(plen);
+                % % check Base Distance
+                ID = obj.FindID_xyz(xyz(1,:));
+                ID(ID==Pdata.ID) = [];
+                BaseDist = obj.GetBaseEuclidDist(xyz,ID,EuName);
+    %             try
+                Dist = Dist + BaseDist;
+    %             catch err
+    %                 keyboard
+    %             end
+                if FlipTF
+                    Dist = flip(Dist,1);
+                end
+                check_Dist = Pdata.(EuName);
+                Dist = nanmin(Dist,check_Dist);
+                Pdata.(EuName) = Dist;
+                check_Gene = Pdata.(GeName);
+                Pdata.(GeName) = nanmin(GenerationsNum,check_Gene);
+            end
+            
+            obj.Segment.Pointdata(ind) = Pdata;
+        end
+        function BaseDist = GetBaseEuclidDist(obj,xyz,ID,Class)
+            % BaseDist = GetBaseEuclidDist(xyz[1x3],ID,Class)
+            % xyz Must be in ID
+            D = nan(length(ID),1);
+            for n = 1:length(ID)
+                Pdata = obj.Pointdata_ID(ID(n));
+                ind = obj.BranchInXYZ(xyz,Pdata.PointXYZ,obj.Segment.ResolutionXYZ);
+                Dist = Pdata.(Class);
+                if or(isempty(ind),isnan(ind))
+                    D(n) = 0;
+                else
+                    %% some time length(ind) > 1
+                    D(n) = min(Dist(ind)); %%
+                end
+            end
+            BaseDist = nanmin(D);
+            if isempty(BaseDist)
+                BaseDist = 0;
             end
         end
         
@@ -2323,6 +2506,26 @@ classdef Segment_Functions
                 AddEdgeIndex = [AddEdgeIndex, size(xyz,1)];
             end
         end
+        function [output_XYZ,DI] = Delete_SamePointXYZ(~,XYZ)
+            DeleteInd = [];
+            for n = 1:size(XYZ,1)-1
+                if ~isempty(DeleteInd)
+                    if max(n==DeleteInd)
+                        continue
+                    end
+                end
+                xyz1 = XYZ(n,:);
+                xyz2 = XYZ(n+1:end,:);
+                TFx = xyz1(1) == xyz2(:,1);
+                TFy = xyz1(2) == xyz2(:,2);
+                TFz = xyz1(3) == xyz2(:,3);
+                ind = find(and(and(TFx,TFy),TFz));
+                DeleteInd = cat(1,DeleteInd,ind(:)+n);
+            end
+            XYZ(DeleteInd,:) = [];
+            output_XYZ = XYZ;
+            DI = DeleteInd;
+        end
         
         
         function [Aid,Vid,Aind,Vind] = FindID_Class_arteriovenous(obj)
@@ -2368,7 +2571,7 @@ classdef Segment_Functions
                 TFz = max(xyz(:,3) == z);
                 TF = TFx && TFy && TFz;
                 if TF 
-                    ID = [ID Pdata(n).ID];
+                    ID = cat(2,ID,Pdata(n).ID);
                 end
             end
         end
