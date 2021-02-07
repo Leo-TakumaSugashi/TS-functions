@@ -1,5 +1,50 @@
 classdef Segment_Functions
-    %% version memo
+    % Important parts.
+    % "ID" is not duplicated in absolute value.
+    % If the ID is negative, the calculation and visualization will not 
+    % work in the subsequent processing.
+    % In other words, if you want to erase the segment, you just have to 
+    % make the ID negative.
+    % It is not assumed that the ID will be 0.
+    %
+    % #### For fields other than ID in Pointdata ####
+    %  ## Regarding location information.
+    %   In "PointXYZ" and "Branch", the order is x, y, z.
+    % "Point XYZ" is vector data, and a vector consisting of n sample 
+    %   points is in the format of nx3.
+    % "Branch" is a vector of at least 1x3, and segments without branches
+    %   are composed of NaN (Not a Number).
+    %   Each point of "Branch" must be included in PointXYZ.
+    %   If PointXYZ and Branch is different type( like that double and 
+    %   single type ), it would cause an error.
+    %
+    %  ## Regarding special fields of strings.
+    %   "Type" is a character string, and only four types of "End to End",
+    %     "End to Branch", "Branch to Branch", and "others" are assumed.
+    %   "Class" is a character string, assuming only 9 types of'Art.','SA',
+    %     'PA','Cap.', Vein','SV','PV','Parent','others' Not.
+    %   "MEMO" can be freely added as a character string, but Separate and 
+    %     Connect information will be entered.
+    %
+    %  ## Other
+    % Other parameters depend on the number of "N" center points of the 
+    % base PointXYZ or consist of a single scalar.
+    % For example. 
+    %  "Diameter" is in Nx1 data format, but if there are T slice images
+    %   with different time information without changing the center point,
+    %   it will be in NxT format.
+    %  "Length" is the Euclidean length of the center point and is a scalar.
+    %
+    % Known issue.
+    % With self.Connect (), self.Separate () and functions that use them, 
+    % only the main parts in Pointdata (fields developed by March 2020) 
+    % can be changed. However other fields and added by user are placed 
+    % would be change the structure against the intention of the developer
+    % in function of Connect and Separate. These are the factors that cause
+    % errors in the subsequent processing (mainly visualization).
+    %
+    %
+    % % version memo
     % Dec. 30th, 2020 Sugashi
     %  Edited set_Segment for new structure(NewXYZrot,nor,ell)
     %
@@ -8,55 +53,57 @@ classdef Segment_Functions
     %
     % Feb. 1-6th, 2021 Sugashi
     %  add Euclidian distance from AorV
-    
+    % Feb. 7th, 2021 Sugashi
+    %  Organize, add help, examples, etc.
+
     properties
-        
+
         Segment  % Main data. Vasculature Segment. ( = TS_AutoSegmnet_vNewest())
         StartEndXYZ(2,3,:)  % using in self.Chase()
         MesureLine = @TS_Measure % function TS_Measure
-        
+
         Chase_Limit(1,1) = 10 % Using in self.Chase(). Limit of ID, but having bags.
-        
+
         Class_Artery = {'Art.','SA','PA'} % Definition class names as artery.
-        Class_Vein = {'Vein','SV','PV'} % Definition class names as vein.        
-        
+        Class_Vein = {'Vein','SV','PV'} % Definition class names as vein.
+
         Tracking_Distance_Limit(1,1) = 10 % Limit of distans to Trak time-scopic data. Default is 10 [um]
-        
+
         RFitting_WindowSize(1,1) = 20 % How long use in caliculate "Radius" on each point. Default is 20 [um]
-        RFitting_MaxDistance(1,1) = 10 % Dump of old function used. or Developer foget 
-        StraghtAS(1,1) = 30 % Definition as "Straght" by how over "Radius" . Default is 30 [um]        
-        
+        RFitting_MaxDistance(1,1) = 10 % Dump of old function used. or Developer foget
+        StraghtAS(1,1) = 30 % Definition as "Straght" by how over "Radius" . Default is 30 [um]
+
         BsplineFunc = @HS_B_Spline_ver19Alpha % Alias of Bspline function (c) Hiroki Suzuki.
         BsplineDim = 5 % Dimmention of bspline. Default is 5.
         BsplineFistDownSizeRatio = 1/3; % 1st donw size ratio in bspline. default is 1/3.
-        
+
         ResamplingRate(1,1) = 0.5; %% Definition of Resampling Rate [um]. Default is 0.5 um. it should be smaller than minimum of self.Segment.ResolutionXYZ
         ResamplingDenoiseWindowSize(1,1) = 11 %% Definition of average window size in self.SmoothingSEG.[um],default is 11.see also self.Resampling
         NormReferenceLength(1,1)  = 3; %% Definition of window width in normal vector calculation. The default is 3 um. This should exceed a sampling ratio of at least twice.
         FaiReferenceLength(1,1) = 10; %% Definition of window width in Fai degree calculation (between each vecotor and z-axis). Default is 10 um.
         EllipticLengthLim = 5; %% Reference value to be approximated by an ellipse judged by the segment length. just for 2D
         EllipticFaiLim = pi/4; % Reference value to be approximated by an ellipse judged by the Fai.[radian], for 3D
-        
+
         LastDate = '2021/6th/Feb., by Leo Sugashi Takuma'
-        Version = '2.1.0'
+        Version = '2.1.01' %% Current version is 2.1.01, under edit help.
         UserData
     end
     methods
         function obj = set.Segment(obj,SEG)
             obj.Segment = obj.set_Segment(SEG);
         end
-        
-        %% Set up Segment 
-        function SEG = set_Segment(obj,SEG,varargin)            
+
+        %% Set up Segment
+        function SEG = set_Segment(obj,SEG,varargin)
             % default set up for Segment Analysis by Leo Sugashi Takuma
             % SEG = This.set_Segment(SEG)
             % SEG = This.set_Segment(SEG,'f')
             %     * 'f' is force type.
             %      AnalysisShouldBeElliptic and NormThetaXY field add since
-            %     2020, 20, Apri. 
+            %     2020, 20, Apri.
             %     This Field use in TS_AutoAnalyssiDiam_SEG_v2020Beta(
             %     or later version).
-            % 
+            %
             % this ID is for traking and enable data.
             % ID < 0 mean deleted Segment. ID > 0 is usable data.
             % So, when Adding new Segment, Deleting, Editing, it is able to
@@ -69,8 +116,8 @@ classdef Segment_Functions
             %    example when resampling
             %
             % editlog 2020 20th Apr. by Sugashi
-            % Add , Pointdata.AnalysisShouldBeElliptic and 
-            % Pointdata.NormXYplan field, 
+            % Add , Pointdata.AnalysisShouldBeElliptic and
+            % Pointdata.NormXYplan field,
             %% SEG.Size is Trigar of 2D ore 3D;
             if ~isfield(SEG,'Size')
                 try
@@ -85,11 +132,11 @@ classdef Segment_Functions
                 OverWriteType = varargin{1};
             end
 %             if or(~isfield(SEG,'ResamplingRate'),strcmp(OverWriteType,'f'))
-            if strcmp(OverWriteType,'f')    
+            if strcmp(OverWriteType,'f')
 %                 SEG = ResampllingSEG(obj,SEG);%%Edit 2020.08.11 Kusaka
                  SEG = obj.ResampllingSEG(SEG);
             end
-            
+
             %% Pointdata (3D-2D data check)
             Pdata = SEG.Pointdata;
             if size(Pdata(1).PointXYZ,2)==2
@@ -105,11 +152,11 @@ classdef Segment_Functions
                 if size(xyz,1)==1
                     continue
                 end
-         
+
                 try
                 plen = obj.xyz2plen(xyz,SEG.ResolutionXYZ);
                 plen(1) = inf;
-                delete_index = plen <obj.ResamplingRate/10; %% pieacewise distance equal 0                
+                delete_index = plen <obj.ResamplingRate/10; %% pieacewise distance equal 0
                 PointNumel =size(xyz,1);
                 if sum(delete_index)>0
                     xyz(delete_index,:) = [];
@@ -136,134 +183,134 @@ classdef Segment_Functions
                 end
             end
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            if ~isfield(Pdata,'ID') 
+
+            if ~isfield(Pdata,'ID')
                 for n = 1:length(Pdata)
-                    Pdata(n).ID = n; 
+                    Pdata(n).ID = n;
                 end
             end
             if ~isfield(Pdata,'Branch')
                 for n = 1:length(Pdata)
-                    Pdata(n).Branch = nan(1,3); 
+                    Pdata(n).Branch = nan(1,3);
                 end
             end
             if ~isfield(Pdata,'Class')
                 for n = 1:length(Pdata)
-                    Pdata(n).Class = 'others'; 
+                    Pdata(n).Class = 'others';
                 end
             end
             if ~isfield(Pdata,'Signal') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).Signal = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).Signal = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'Noise') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).Noise = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).Noise = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'Theta') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).Theta = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).Theta = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'Diameter') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).Diameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).Diameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'LineRotDiameter') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).LineRotDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).LineRotDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'NormDiameter') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).NormDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).NormDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'EllipticDiameter') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).EllipticDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).EllipticDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
-            
+
             if ~isfield(Pdata,'NewXYZ') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).NewXYZ= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                    Pdata(n).NewXYZ= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1));
                 end
             else
                 % % if after resampling....
             end
             if ~isfield(Pdata,'NewXYZrot') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).NewXYZrot= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                    Pdata(n).NewXYZrot= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1));
                 end
             else
                 % % if after resampling....
             end
             if ~isfield(Pdata,'NewXYZnor') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).NewXYZnor= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                    Pdata(n).NewXYZnor= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1));
                 end
             else
                 % % if after resampling....
             end
             if ~isfield(Pdata,'NewXYZell') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).NewXYZell= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1)); 
+                    Pdata(n).NewXYZell= nan(size(Pdata(n).PointXYZ,1),3,'like',single(1));
                 end
             else
                 % % if after resampling....
             end
             if ~isfield(Pdata,'MEMO')
                 for n = 1:length(Pdata)
-                    Pdata(n).MEMO = ' '; 
+                    Pdata(n).MEMO = ' ';
                 end
             end
             % % saved as original data = result of TS_AutoSegment_...
             if ~isfield(Pdata,'OriginalPointXYZ')
                 for n = 1:length(Pdata)
-                    Pdata(n).OriginalPointXYZ= Pdata(n).PointXYZ; 
+                    Pdata(n).OriginalPointXYZ= Pdata(n).PointXYZ;
                 end
             end
-            
+
             % % for euclid length form arteriovein
             if ~isfield(Pdata,'EuclidLength_Arteries') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).EuclidLength_Arteries = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).EuclidLength_Arteries = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'GenerationsNum_Arteries') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).GenerationsNum_Arteries = nan(1,1,'like',single(1)); 
+                    Pdata(n).GenerationsNum_Arteries = nan(1,1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'EuclidLength_Veins') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).EuclidLength_Veins = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).EuclidLength_Veins = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'GenerationsNum_Veins') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).GenerationsNum_Veins = nan(1,1,'like',single(1)); 
+                    Pdata(n).GenerationsNum_Veins = nan(1,1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'EuclidLength_ArterioVenous') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).EuclidLength_ArterioVenous = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1)); 
+                    Pdata(n).EuclidLength_ArterioVenous = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
             if ~isfield(Pdata,'GenerationsNum_ArterioVenous') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
-                    Pdata(n).GenerationsNum_ArterioVenous = nan(1,1,'like',single(1)); 
+                    Pdata(n).GenerationsNum_ArterioVenous = nan(1,1,'like',single(1));
                 end
             end
-            
-                    
-            
+
+
+
             %% including TimeData
-            mt = 1; %% maximum time data numel 
+            mt = 1; %% maximum time data numel
             for n = 1:length(Pdata)
                 mt = max(mt,size(Pdata(n).Diameter,2));
                 mt = max(mt,size(Pdata(n).Signal,2));
@@ -293,7 +340,7 @@ classdef Segment_Functions
                     if cn <mt
                         Pdata(n).Theta = cat(2,Pdata(n).Theta,...
                             nan(siz,mt-cn,'like',single(1)));
-                    end 
+                    end
                     cn = size(Pdata(n).LineRotDiameter,2);
                     if cn <mt
                         try
@@ -302,21 +349,21 @@ classdef Segment_Functions
                         catch err
                             keyboard
                         end
-                    end   
+                    end
                     cn = size(Pdata(n).NormDiameter,2);
                     if cn <mt
                         Pdata(n).NormDiameter = cat(2,Pdata(n).NormDiameter,...
                             nan(siz,mt-cn,'like',single(1)));
-                    end   
+                    end
                     cn = size(Pdata(n).EllipticDiameter,2);
                     if cn <mt
                         Pdata(n).EllipticDiameter = cat(2,Pdata(n).EllipticDiameter,...
                             nan(siz,mt-cn,'like',single(1)));
-                    end   
+                    end
                 end
             end
-            
-            
+
+
             if strcmp(OverWriteType,'f')  %% check Diameter Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).Diameter ;
@@ -329,11 +376,11 @@ classdef Segment_Functions
                         for t = 1:mt
                             X(:,t) = interp1(D(:,t),linspace(1,length(D),num)','linear');
                         end
-                        Pdata(n).Diameter = X;              
+                        Pdata(n).Diameter = X;
                     end
-                end                
-            end 
-            
+                end
+            end
+
             if strcmp(OverWriteType,'f') %% check Diameter Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).LineRotDiameter ;
@@ -343,11 +390,11 @@ classdef Segment_Functions
                         for t = 1:mt
                             X(:,t) = interp1(D(:,t),linspace(1,length(D),num)','linear');
                         end
-                        Pdata(n).LineRotDiameter = X;              
+                        Pdata(n).LineRotDiameter = X;
                     end
-                end                
-            end 
-            
+                end
+            end
+
             if strcmp(OverWriteType,'f') %% check Diameter Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).NormDiameter ;
@@ -357,11 +404,11 @@ classdef Segment_Functions
                         for t = 1:mt
                             X(:,t) = interp1(D(:,t),linspace(1,length(D),num)','linear');
                         end
-                        Pdata(n).NormDiameter = X;              
+                        Pdata(n).NormDiameter = X;
                     end
-                end                
-            end 
-            
+                end
+            end
+
             if strcmp(OverWriteType,'f') %% check Diameter Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).EllipticDiameter ;
@@ -371,11 +418,11 @@ classdef Segment_Functions
                         for t = 1:mt
                             X(:,t) = interp1(D(:,t),linspace(1,length(D),num)','linear');
                         end
-                        Pdata(n).EllipticDiameter = X;              
+                        Pdata(n).EllipticDiameter = X;
                     end
-                end                
-            end 
-            
+                end
+            end
+
             if strcmp(OverWriteType,'f') %% check Diameter Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).Signal ;
@@ -385,11 +432,11 @@ classdef Segment_Functions
                         for t = 1:mt
                             X(:,t) = interp1(D(:,t),linspace(1,length(D),num)','linear');
                         end
-                        Pdata(n).Signal = X;                   
+                        Pdata(n).Signal = X;
                     end
-                end                
+                end
             end
-            
+
             if strcmp(OverWriteType,'f') %% check Diameter Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).Noise ;
@@ -399,22 +446,22 @@ classdef Segment_Functions
                         for t = 1:mt
                             X(:,t) = interp1(D(:,t),linspace(1,length(D),num)','linear');
                         end
-                        Pdata(n).Noise = X;                     
+                        Pdata(n).Noise = X;
                     end
-                end                
+                end
             end
-            
+
             if strcmp(OverWriteType,'f') %% check Theta Num == point Num
                 for n = 1:length(Pdata)
                     D = Pdata(n).Noise ;
                     num = size(Pdata(n).PointXYZ,1);
                     if length(D) < num
-                        Pdata(n).Theta = nan(num,mt);                                                
+                        Pdata(n).Theta = nan(num,mt);
                     end
-                end                
+                end
             end
-            
-            
+
+
             %% Parent SEG
             SEG.Pointdata = Pdata;
             if ~isfield(SEG,'AddBP')
@@ -422,18 +469,18 @@ classdef Segment_Functions
             end
             if ~isfield(SEG,'Branch')
                 SEG.Branch = zeros(1,0);
-            end            
+            end
             if ~isfield(SEG,'BPmatrix')
                 SEG.BPmatrix = obj.Modify_BranchPointMatrix(SEG);
                 warning('Input SEG data has no BPmatrix.')
             end
             if ~isfield(SEG,'BranchPointXYZ')
                 SEG.BranchPointXYZ = SEG.BPmatrix(:,1:3);
-            end            
+            end
             if ~isfield(SEG,'Resampling')
                 SEG.Resampling = false;
             end
-            
+
             if length(SEG.Size)==2
                 SEG.Size = [SEG.Size 1];
             end
@@ -454,20 +501,20 @@ classdef Segment_Functions
             end
             if islogical(SEG.End)
                 SEG.End = find(SEG.End(:));
-            end            
+            end
             if islogical(SEG.Original)
                 SEG.Original = find(SEG.Original(:));
             end
             if length(SEG.ResolutionXYZ)==2
                 SEG.ResolutonXYZ(3) = 1;
             end
-            
+
             %% Add Parameter for Measurement
-            
+
             if or(~isfield(Pdata,'NormThetaXY'),strcmp(OverWriteType,'f'))
-                SEG = obj.AddNormThetaXY(SEG);                
+                SEG = obj.AddNormThetaXY(SEG);
             end
-            if or(~isfield(Pdata,'AnalysisShoudBeElliptic'),strcmp(OverWriteType,'f'))                
+            if or(~isfield(Pdata,'AnalysisShoudBeElliptic'),strcmp(OverWriteType,'f'))
                 SEG = obj.AddAnalysisShoudBeElliptic(SEG);
             end
             %% endroll
@@ -475,12 +522,17 @@ classdef Segment_Functions
                 SEG.SegEditor = [];
             end
             SEG.SegmentFunctionLastUpdate = obj.LastDate;
-            
+
         end
-        
-        
+
+
         %% alias
         function Pdata = Pointdata_ID(obj,ID)
+          % Allias self.Segment.Pointdata with inputing "ID"
+          %
+          % Pdata = self.Pointdata_ID(ID)
+          %  ID : scolar or vector.
+
             ind = obj.ID2Index(ID);
             if isnan(ind)
                 Pdata = nan;
@@ -488,17 +540,25 @@ classdef Segment_Functions
             end
             Pdata = obj.Segment.Pointdata(ind);
         end
-        
+
         %% Main Function
         function NewSEG = Connect(obj,SEG,varargin)
-            % NewSEG = __.Connect(SEG,Pairs,{'normal','--force','-f'})
+            % Connects multiple Segments.
+            % NewSEG = self.Connect(SEG,Pairs,{"normal",'--force','-f'})
+            %
+            % SEG    : Segment data.
+            % Pairs  : IDs vecotor. Or {IDs_1:IDs_2:...}
+            % Option :{"normal",'--force','-f'}
+            %         if '--force' ot '-f', Forcibly connect even if the Segments are separated.
+
+
 %             obj.Segeditor.Segment = SEG;
 %             clear SEG
 %             NewSEG = obj.Segeditor.Segment;
             obj.Segment = SEG;
             NewSEG = obj.Segment;
             Pairs = varargin{1};
-            if nargin ==4 
+            if nargin ==4
                 if max(strcmpi(varargin{2},{'--force', '-f'}))
                     ForceType = true;
                 else
@@ -519,27 +579,32 @@ classdef Segment_Functions
                 NewPdata(end).ID = OldMaxID + k;
                 for n = 1:length(Index)
                     NewPdata(Index(n)).ID = ...
-                        abs(NewPdata(Index(n)).ID) * (-1);                
+                        abs(NewPdata(Index(n)).ID) * (-1);
                 end
             end
             NewSEG.Pointdata = NewPdata;
         end
         function NewPdata = Connect_Pointdata(obj,SEG,Ind,ForceConnecting)
+          % The function used in the self.Connect function.
+          %
+          % It is known that an error occurs depending on the data in Pointdata.
+          % Available fields are follows.
+          % PointXYZ Branch Signal Noise Diameter Theta NewXYZ
             Pdata = SEG.Pointdata(Ind);
             [Startindex,SegmentType] = obj.Find_EndSEG(Pdata);
 %             catID = cat(1,Pdata.ID);
 %             OldMaxID = max(abs(catID));
-            NewPdata = SEG.Pointdata(Startindex);        
+            NewPdata = SEG.Pointdata(Startindex);
             sort_table = true(1,length(Ind));
             sort_table(Startindex) = false;
             xyz = Pdata(Startindex).PointXYZ;
-            
+
             Branch = Pdata(Startindex).Branch;
             Signal = Pdata(Startindex).Signal;
             Noise = Pdata(Startindex).Noise;
             Diameter = Pdata(Startindex).Diameter;
             Theta = Pdata(Startindex).Theta;
-            NewXYZ = Pdata(Startindex).NewXYZ;    
+            NewXYZ = Pdata(Startindex).NewXYZ;
             % check class
             Class_check = cell(1,length(Ind));
             Class_check{1} = Pdata(Startindex).Class;
@@ -548,17 +613,17 @@ classdef Segment_Functions
                 [NearIndex,TF_flip_Parent,TF_flip_Foward,ErrorString] ...
                 = obj.FindNearestID(xyz,Pdata,sort_table,SEG.ResolutionXYZ);
                 NearIndex = NearIndex(1);
-                NextPdata = Pdata(NearIndex);            
+                NextPdata = Pdata(NearIndex);
                 sort_table(NearIndex) = false;
                 if ~isempty(ErrorString)
                     warning(['Force Connecting : ' num2str(ForceConnecting)])
-                    if ~ForceConnecting                    
+                    if ~ForceConnecting
                         fprintf('Force Connecting = false\n    if you wanna connect, need "-f" in input.\n')
                         error(['    Error Index : ' num2str(Ind(BeforeIndex)) ' and ' num2str(Ind(NearIndex))])
-                    else                    
+                    else
                         fprintf('Force Connecting = true\n')
                         fprintf(['    Force Connect. : ' num2str(Ind(BeforeIndex)) ' and ' num2str(Ind(NearIndex)) '\n'])
-                    end                
+                    end
                 end
                 BeforeIndex = NearIndex;
                 xyz_Add = NextPdata.PointXYZ;
@@ -599,14 +664,14 @@ classdef Segment_Functions
             Plen = obj.xyz2plen(xyz,SEG.ResolutionXYZ);
             Plen(1) = inf;
             Delete_Ind = Plen ==0;
-            xyz(Delete_Ind,:) = [];        
+            xyz(Delete_Ind,:) = [];
             Signal(Delete_Ind) = [];
             Noise(Delete_Ind) = [];
             Diameter(Delete_Ind) = [];
             Theta(Delete_Ind) = [];
             NewXYZ(Delete_Ind,:) = [];
-            
-            
+
+
             if max(strcmpi(Class_check,'Art.'))
                 output_class = 'Art.';
             elseif max(strcmpi(Class_check,'Vein'))
@@ -626,8 +691,8 @@ classdef Segment_Functions
             else
                 output_class = 'others';
             end
-            
-            %% output 
+
+            %% output
 
             NewPdata.PointXYZ = xyz;
             NewPdata.Branch   = Branch;
@@ -636,27 +701,28 @@ classdef Segment_Functions
             NewPdata.Diameter = Diameter;
             NewPdata.Theta    = Theta;
             NewPdata.NewXYZ   = NewXYZ;
-            
-            
+
+
             NewPdata.Type     = SegmentType;
             NewPdata.Length   = sum(obj.xyz2plen(xyz,SEG.ResolutionXYZ));
 %             NewPdata.ID       = max(max(abs(cat(1,NewPdata.ID))),OldMaxID)+1
             NewPdata.Class    = output_class;%'Parent';
-            NewPdata.MEMO     = ['Paired:' num2str(Ind)];        
+            NewPdata.MEMO     = ['Paired:' num2str(Ind)];
         end
         function NewSEG = Connect_Edge2Nearest(obj,SEG,xyz,IDobj)
             % NewSEG = Connect_Edge2Nearest(obj,SEG,xyz,toID)
-            % Never Change IDs,
-            % In oder to Connect from "xyz" (including to find basement ID) 
+            %
+            % Not Change IDs,
+            % In oder to Connect from "xyz" (including to find basement ID)
             % to Nearest xyz in "toID".
-            % If, "xyz" is just End point, PointXYZ in found ID from "xyz" 
+            % If, "xyz" is just End point, PointXYZ in found ID from "xyz"
             % change(connect to one), and will copy Diameter, S, N, etc.
             % If, "xyz" is NOT  End point, Create New Pointdata(Segment),
             % and copy neseccery infomation.
-            
+
             obj.Segment = SEG;
             Reso = SEG.ResolutionXYZ;
-            
+
             Index_obj = obj.ID2Index(IDobj);
             % 1. Check xyz
             ID_base = obj.FindID_xyz(xyz);
@@ -688,13 +754,13 @@ classdef Segment_Functions
                 CatDir = and(and(xyz(1) == xyz_base(1,1),...
                     xyz(2) == xyz_base(1,2)),...
                     xyz(3) == xyz_base(1,3));
-                if CatDir                    
+                if CatDir
                     n_PointXYZ = cat(1,AddXYZ,xyz_base);
                     n_Branch = cat(1,AddXYZ,obj.Segment.Pointdata(Index_base).Branch);
                     n_Signal = cat(1,obj.Segment.Pointdata(Index_obj).Signal(ind),...
                         obj.Segment.Pointdata(Index_base).Signal);
                     n_Noise = cat(1,obj.Segment.Pointdata(Index_obj).Noise(ind),...
-                        obj.Segment.Pointdata(Index_base).Noise);                    
+                        obj.Segment.Pointdata(Index_base).Noise);
                     n_Diameter = cat(1,obj.Segment.Pointdata(Index_obj).Diameter(ind),...
                         obj.Segment.Pointdata(Index_base).Diameter);
                     n_NewXYZ = cat(1,obj.Segment.Pointdata(Index_obj).NewXYZ(ind,:),...
@@ -705,7 +771,7 @@ classdef Segment_Functions
                     n_Signal = cat(1,obj.Segment.Pointdata(Index_base).Signal,...
                         obj.Segment.Pointdata(Index_obj).Signal(ind));
                     n_Noise = cat(1,obj.Segment.Pointdata(Index_base).Noise,...
-                        obj.Segment.Pointdata(Index_obj).Noise(ind) );                    
+                        obj.Segment.Pointdata(Index_obj).Noise(ind) );
                     n_Diameter = cat(1,obj.Segment.Pointdata(Index_base).Diameter,...
                         obj.Segment.Pointdata(Index_obj).Diameter(ind) );
                     n_NewXYZ = cat(1,obj.Segment.Pointdata(Index_base).NewXYZ,...
@@ -715,9 +781,9 @@ classdef Segment_Functions
                 n_Branch(isnan(n_Branch(:,1)),:) = [];
                 n_ID = obj.Segment.Pointdata(Index_base).ID;
                 EditIndex = Index_base;
-                
+
             elseif numel(ID_base) >1 %% add New Pointdata
-                if CatDir 
+                if CatDir
                     base_ind = 1;
                 else
                     base_ind = size(obj.Segment.Pointdata(Index_base).PointXYZ);
@@ -731,7 +797,7 @@ classdef Segment_Functions
                 n_Signal = cat(1,obj.Segment.Pointdata(Index_obj).Signal(ind),...
                         obj.Segment.Pointdata(Index_base).Signal(base_ind));
                 n_Noise = cat(1,obj.Segment.Pointdata(Index_obj).Noise(ind),...
-                        obj.Segment.Pointdata(Index_base).Noise(base_ind));                    
+                        obj.Segment.Pointdata(Index_base).Noise(base_ind));
                 n_Diameter = cat(1,obj.Segment.Pointdata(Index_obj).Diameter(ind),...
                         obj.Segment.Pointdata(Index_base).Diameter(base_ind));
                 n_NewXYZ = cat(1,obj.Segment.Pointdata(Index_obj).NewXYZ(ind,:),...
@@ -748,11 +814,20 @@ classdef Segment_Functions
             obj.Segment.Pointdata(EditIndex).Diameter = n_Diameter;
             obj.Segment.Pointdata(EditIndex).NewXYZ = n_NewXYZ;
             obj.Segment.Pointdata(EditIndex).ID = n_ID;
-                       
+
             NewSEG = obj.ReCheckType();
-            
+
         end
         function NewSEG = Separate(obj,SEG,SegID,Index)
+          % NewSEG = self.Separate(SEG,SegID,Index)
+          %
+          % SEG   : Segment DateData
+          % SegID : ID (scalar)
+          % Index : index of place to separate. (scalar)
+          %
+          % It is known that an error occurs depending on the data in Pointdata.
+          % Available fields are follows.
+          % PointXYZ Branch Signal Noise Diameter Theta NewXYZ
             obj.Segment = SEG;
             clear SEG
             NewSEG = obj.Segment;
@@ -764,7 +839,7 @@ classdef Segment_Functions
             if ~isscalar(Index)
                 error('Input Index Number in SegNum(=Index) is NOT vector')
             end
-            ParentPdata = NewSEG.Pointdata(SegNum);    
+            ParentPdata = NewSEG.Pointdata(SegNum);
             if max(Index==1) || max(Index ==size(ParentPdata.PointXYZ,1))
                 error('Input Index Number has 1 or end.')
             end
@@ -800,18 +875,29 @@ classdef Segment_Functions
                 NewPdata(end).Length   = sum(obj.xyz2plen(xyz,NewSEG.ResolutionXYZ));
                 NewPdata(end).ID       = EndID+n;
                 NewPdata(end).Class    = ParentPdata.Class;
-                NewPdata(end).MEMO     = [' Separated from ID :' num2str(SegID) ];  
+                NewPdata(end).MEMO     = [' Separated from ID :' num2str(SegID) ];
             end
-            
+
             NewSEG.Pointdata = NewPdata;
         end
         function chase_data = Chase(obj,SEG,input_xyz,varargin)
+          % chase_data = self.Chase(SEG,input_xyz)
+          % Input :
+          %   SEG       : Segment data.
+          %   input_xyz : Start point of xyz, 1x3,vecotor.
+          % Output : (structure)
+          %   chase_data.StartID   :  Start ID
+          %   chase_data.Chase     :  main output(structure)
+          %             .Chase(n).IDs    : Chased IDs.
+          %             .Chase(n).FlipTF : Inversion information of segment vector at the time of chasing.
+          %
+          %  see also, self.FindNextSegment
             SEG = obj.set_Segment(SEG);
             cutids = cat(1,SEG.Pointdata.ID) > 0;
             SEG.Pointdata = SEG.Pointdata(cutids);
             obj.Segment = SEG;
             chase_data = struct('Input_XYZ',input_xyz,...
-                'StartID',[],'Chase',[]);            
+                'StartID',[],'Chase',[]);
             if ~isvector(input_xyz)
                 error('Input XYZ(= Start XYZ) must Be [X,Y,Z] Vector data.')
             end
@@ -825,15 +911,17 @@ classdef Segment_Functions
                 catID = cat(1,catID,IDs);
                 catFlipTF = cat(1,catFlipTF,FlipTFs);
             end
-            
+
             Chase(1:size(catID,1)) = struct('IDs',[],'FlipTFs',[]);
             for n = 1:size(catID,1)
-                Chase(n).IDs = catID{n};                
+                Chase(n).IDs = catID{n};
                 Chase(n).FlipTFs = catFlipTF{n};
             end
             chase_data.Chase = Chase;
         end
-        function [obj,StartID,FlipTF] = Check_input_Chaser(obj,Pdata,xyz)            
+        function [obj,StartID,FlipTF] = Check_input_Chaser(obj,Pdata,xyz)
+          % [obj,StartID,FlipTF] = self.Check_input_Chaser(Pdata,xyz)
+          % Used in the Chase function.
             cat_xyz = cat(1,Pdata.PointXYZ);
             Xtf = xyz(1) == cat_xyz(:,1);
             Ytf = xyz(2) == cat_xyz(:,2);
@@ -841,9 +929,9 @@ classdef Segment_Functions
             TF = and( and( Xtf, Ytf), Ztf);
             if ~max(TF)
                 warning('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
-            end           
-            
-            catID = cat(1,Pdata.ID);            
+            end
+
+            catID = cat(1,Pdata.ID);
             XYZ_matrix = zeros(2,3,length(Pdata));
             for n = 1:length(Pdata)
                 XYZ_matrix(1,:,n) = Pdata(n).PointXYZ(1,:);
@@ -853,7 +941,7 @@ classdef Segment_Functions
             Index = squeeze(obj.FindSameStartEndXYZ(xyz));
             [y,x] = find(Index);
             StartID = catID(x);
-            FlipTF = y ==2; 
+            FlipTF = y ==2;
             if isempty(StartID)
                 warning('Input XYZ(Start XYZ) is NOT exist in PointXYZ.')
                 try
@@ -864,14 +952,20 @@ classdef Segment_Functions
                 StartID = check;
                 FlipTF = false;
             end
-        end  
+        end
         function NewSEG = CalculateSphereFitRadius(obj,SEG)
+          % NewSEG = self.CalculateSphereFitRadius(SEG)
+          %
+          % An older version of the curve radius calculation
+          % function at a point. The new ones are as follows.
+          %    [Rad,UVec,Scal] = self.CircleFit_Taubin(xy_real); as 2D
+          %    [Rad,UVec,Scal] = self.SphereFit_LeastSquares(xyz_real; ad 3D
             Pdata = SEG.Pointdata;
-            Reso = SEG.ResolutionXYZ;            
+            Reso = SEG.ResolutionXYZ;
             fprintf(['    ' mfilename '\n'])
             disp(['Number of Segment (ID>0) : ' num2str(sum(cat(1,Pdata.ID)>0))])
             fprintf('... using parfor...')
-            tic     
+            tic
             Pdata(1).SphereFitRadius = [];
             parfor n = 1:length(Pdata)
                 if Pdata(n).ID < 0
@@ -889,14 +983,20 @@ classdef Segment_Functions
             fprintf('\n\n')
         end
         function NewSEG = CalculateCircleFitRadius(obj,SEG)
+          % NewSEG = self.CalculateSphereFitRadius(SEG)
+          %
+          % An older version of the curve radius calculation
+          % function at a point. The new ones are as follows.
+          %    [Rad,UVec,Scal] = self.CircleFit_Taubin(xy_real); as 2D
+          %    [Rad,UVec,Scal] = self.SphereFit_LeastSquares(xyz_real; ad 3D
             Reso = SEG.ResolutionXYZ;
             NewStep = SEG.ResolutionXYZ(1); %% unit um/pix.
             XYZrange = repmat(NewStep*3,[1 3]); %% unit, um
             NewSEG = obj.SmoothingSEG(SEG,NewStep,XYZrange);
-            
+
             val = 31; %% point number
             Threshold_lineR = 30; %% um
-            
+
             for n = 1:length(NewSEG.Pointdata)
                 xyz = NewSEG.Pointdata(n).PointXYZ;
                 R = obj.xyz2CalcR(xyz,val);
@@ -915,10 +1015,10 @@ classdef Segment_Functions
                 Right = xyz(and(R_straight,xyz_data>MinRInd(1)),:);
                 lenmap = obj.GetEachLength(Left,Right,Reso);
                 MinimumWidth = min(lenmap(:));
-                if isempty(MinimumWidth) 
+                if isempty(MinimumWidth)
                     MinimumWidth = nan;
                 end
-                    
+
                 EvalValues(1) = Num_Straight;
                 EvalValues(2) = MaximumStraight;
                 EvalValues(3) = Num_Curve;
@@ -932,20 +1032,24 @@ classdef Segment_Functions
             % NewSEG = AddSpatialPhysicalQuantityj(SEG)
             % NewSEG = AddSpatialPhysicalQuantityj(SEG,'--force')
             %
+            % Calculation of spatial physical quantities from
+            % Vasculature and vector data of the center point.
+            % # # Under Development.
+            %
             % see properties...(default are...)
             %   obj.RFitting_WindowSize = 15 % um
             %   obj.RFitting_MaxDistance = 10
             %   obj.StraghtAS = 30 % um
-            %            
+            %
             % Editing 2019 09 05 ~, by Sugashi.T.,Suzuki.H.
-            %% input check & Initialize 
+            %% input check & Initialize
             Time = tic;
             warning('off','all')
             ForceType = 'none';
             if nargin == 3
                 ForceType = varargin{1};
             end
-			NewSEG = InputCheck_AddSpatialPhisicalQuatity(obj,SEG);
+		      	NewSEG = InputCheck_AddSpatialPhisicalQuatity(obj,SEG);
             if isfield(NewSEG,'SpatialPhysicEvalDate')
                 if ~max(strcmpi(ForceType,{'-f','--force','force'}))
                     error('Input SEG data has Spatial Physic Quantities.')
@@ -974,10 +1078,10 @@ classdef Segment_Functions
             Pdata(1).Enable_TF = [];
             Pdata(1).is_edge = []; %% Type 'End to Branch'. : 1.00
             %                             & End to End      : 0.50
-            %                               else            : 0.00  
+            %                               else            : 0.00
 %             Pdata(1).PeaceWise_Length = [];
             Pdata(1).DirectedDistance = [];
-            Pdata(1).DirectedVector = [];            
+            Pdata(1).DirectedVector = [];
             Pdata(1).Length_from_Branch = [];
             Pdata(1).SphereFitRadius = [];
             Pdata(1).SphereFitUnitVector = [];
@@ -992,7 +1096,7 @@ classdef Segment_Functions
             Pdata(1).StraghtSumationLength = [];
             Pdata(1).StraghtMaximumLength = [];
             Pdata(1).StraghtMinimumLength = [];
-            
+
             % % % % % for shaving  % % % % %
             Pdata(1).SignalMaximumGap = [];
             Pdata(1).NoiseMaximumGap = [];
@@ -1001,7 +1105,7 @@ classdef Segment_Functions
             Pdata(1).SignalDiffMeanABS = [];
             Pdata(1).NoiseDiffMeanABS = [];
             Pdata(1).SNRDiffMeanABS = [];
-            Pdata(1).DiameterDiffMeanABS = [];            
+            Pdata(1).DiameterDiffMeanABS = [];
             Pdata(1).SignalDiffSD = [];
             Pdata(1).NoiseDiffSD = [];
             Pdata(1).SNRDiffSD = [];
@@ -1010,9 +1114,9 @@ classdef Segment_Functions
             Pdata(1).DistanceNearestEdgeZ = [];
             % after Calculate SphereFitUnitVectors
             % Find Nearest other Segment,
-            % compare with each Branch point Vectors 
+            % compare with each Branch point Vectors
             Pdata(1).MinimumVecterParallelism = [];
-            
+
             %% main
             Reso = SEG.ResolutionXYZ;
             FOV = (NewSEG.Size-1).*NewSEG.ResolutionXYZ;
@@ -1021,7 +1125,7 @@ classdef Segment_Functions
             fprintf('... using parfor...\n')
             fprintf(['NumWorkers : ' num2str(ParObj.NumWorkers) '\n'])
 %             TS_WaiteProgress(0)
-            for nc = 1:length(Pdata)                
+            for nc = 1:length(Pdata)
                 if Pdata(nc).ID < 0
                     Pdata(nc).Enable_TF = false;
                 else
@@ -1040,10 +1144,10 @@ classdef Segment_Functions
                 DirectDist = sqrt( sum((diff(xyz([1,end],1),1,1).*Reso).^2,2) );
                 Pdata(nc).DirectedDistance = DirectDist;
                 Pdata(nc).DirectedVector = diff(xyz([1,end],:),1,1);
-                
+
                 PieaceDist = obj.DistanceFromBranch(xyz,Branch,Reso);
                 Pdata(nc).Length_from_Branch = PieaceDist;
-                
+
                 if sum(xyz(:,3) == 1 ) == size(xyz,1) % 2D
                     [Rad,UVec,Scal] = obj.CircleFit_Taubin((xyz-1).*Reso);
                 else
@@ -1068,7 +1172,7 @@ classdef Segment_Functions
                 for ln = 1:NUMs
                     EachLen(ln) = sum(obj.xyz2plen(xyz(Ls==ln,:),Reso));
                 end
-                
+
                 CMR = min(Rad(TF_curve));
                 if isempty(CMR)
                     CMR = nan;
@@ -1078,9 +1182,9 @@ classdef Segment_Functions
                 if isinf(CV)
                     CV = nan;
                 end
-                Pdata(nc).Curvature =CV; % (Length - DirectLength)/(Directed Distance)    
+                Pdata(nc).Curvature =CV; % (Length - DirectLength)/(Directed Distance)
                 Pdata(nc).CurveMinimumR = CMR;
-                
+
                 Pdata(nc).StraghtNumber = NUMs;
                 Pdata(nc).StraghtSumationLength = sum(EachLen);
                 Pdata(nc).StraghtMaximumLength = max(EachLen);
@@ -1098,24 +1202,24 @@ classdef Segment_Functions
                 Pdata(nc).SignalDiffMeanABS = nanmean(diff(Signal(:),1,1));
                 Pdata(nc).NoiseDiffMeanABS = nanmean(diff(Noise(:),1,1));
                 Pdata(nc).SNRDiffMeanABS = nanmean(diff(SNR(:),1,1));
-                Pdata(nc).DiameterDiffMeanABS = nanmean(diff(Diam(:),1,1));            
+                Pdata(nc).DiameterDiffMeanABS = nanmean(diff(Diam(:),1,1));
                 Pdata(nc).SignalDiffSD = nanstd(diff(Signal(:),1,1));
                 Pdata(nc).NoiseDiffSD = nanstd(diff(Noise(:),1,1));
                 Pdata(nc).SNRDiffSD = nanstd(diff(SNR(:),1,1));
                 Pdata(nc).DiameterDiffSD = nanstd(diff(Diam(:),1,1));
-                
+
                 xyz_real = (xyz -1).*Reso;
                 Dx = min( min(xyz_real(:,1)), min(abs(xyz_real(:,1)-FOV(1))) );
                 Dy = min( min(xyz_real(:,2)), min(abs(xyz_real(:,2)-FOV(2))) );
                 Dz = min( min(xyz_real(:,3)), min(abs(xyz_real(:,3)-FOV(3))) );
                 Pdata(nc).DistanceNearestEdgeXY = min([Dx,Dy]);
                 Pdata(nc).DistanceNearestEdgeZ = Dz;
-                
+
 %                 TS_WaiteProgress(nc/length(Pdata))
             end
             toc(Time)
             fprintf('Calculate Minimum Vecter Parallelism \n')
-            
+
             obj.Segment = NewSEG;
             parPdata = Pdata;
             parfor nc = 1:length(parPdata)
@@ -1127,7 +1231,7 @@ classdef Segment_Functions
                 ID = parPdata(nc).ID;
                 xyz_1st = parPdata(nc).PointXYZ(1,:);
                 IDs = obj.FindID_xyz(xyz_1st);
-                IDs(IDs==ID) = [];                
+                IDs(IDs==ID) = [];
                 if isempty(IDs)
                     val_1st = nan;
                 else
@@ -1135,8 +1239,8 @@ classdef Segment_Functions
                     val_1st = obj.Get_VecterParallelismS(...
                         V0,xyz_1st,obj.ID2Index(IDs),parPdata);
                 end
-                
-                
+
+
                 xyz_end = parPdata(nc).PointXYZ(end,:);
                 IDs = obj.FindID_xyz(xyz_end);
                 IDs(IDs==ID) = [];
@@ -1157,6 +1261,8 @@ classdef Segment_Functions
             warning('on','all')
             fprintf('\n\n')
 			function NewSEG = InputCheck_AddSpatialPhisicalQuatity(obj,SEG)
+        %
+        %
 					NewSEG = obj.set_Segment(SEG);
 					fprintf([mfilename 'Input check ....'])
 					for n = 1:length(NewSEG.Pointdata)
@@ -1175,7 +1281,7 @@ classdef Segment_Functions
 							error('Input SEG data has wrong size for Pointdata ....')
 						end
 					end
-			   end 
+			   end
         end
         function NewSEG = AddSpatialPhysicalQuantity_Capillaro(obj,SEG,varargin)
             % NewSEG = AddSpatialPhysicalQuantityj(SEG)
@@ -1185,16 +1291,16 @@ classdef Segment_Functions
             %   obj.RFitting_WindowSize = 15 % um
             %   obj.RFitting_MaxDistance = 10
             %   obj.StraghtAS = 30 % um
-            %            
+            %
             % Editing 2019 09 05 ~, by Sugashi.T.,Suzuki.H.
-            %% input check & Initialize 
+            %% input check & Initialize
             Time = tic;
             warning('off','all')
             ForceType = 'none';
             if nargin == 3
                 ForceType = varargin{1};
             end
-            
+
 			%% NewSEG = InputCheck_AddSpatialPhisicalQuatity(obj,SEG);
             NewSEG = obj.set_Segment(SEG);
             if isfield(NewSEG,'SpatialPhysicEvalDate')
@@ -1209,7 +1315,7 @@ classdef Segment_Functions
             NewSEG.RFitting_WindowSize = obj.RFitting_WindowSize; % um
             NewSEG.RFitting_MaxDistance = obj.RFitting_MaxDistance;
             NewSEG.StraghtAS = obj.StraghtAS; % um
-            %% initialize for parfor            
+            %% initialize for parfor
             obj.Segment = NewSEG;
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %             ReSEG = obj.ReCheckType();
@@ -1219,12 +1325,12 @@ classdef Segment_Functions
             Pdata(1).Enable_TF = [];
             Pdata(1).is_edge = []; %% Type 'End to Branch'. : 1.00
             %                             & End to End      : 0.50
-            %                               else            : 0.00  
+            %                               else            : 0.00
             %% main
             Reso = SEG.ResolutionXYZ;
             FOV = (NewSEG.Size-1).*NewSEG.ResolutionXYZ;
 
-            for nc = 1:length(Pdata)                
+            for nc = 1:length(Pdata)
                 if Pdata(nc).ID < 0
                     Pdata(nc).Enable_TF = false;
                 else
@@ -1243,26 +1349,26 @@ classdef Segment_Functions
                 DirectDist = sqrt( sum((diff(xyz([1,end],1),1,1).*Reso).^2,2) );
                 Pdata(nc).DirectedDistance = DirectDist;
                 Pdata(nc).DirectedVector = diff(xyz([1,end],:),1,1);
-                
+
                 PieaceDist = obj.DistanceFromBranch(xyz,Branch,Reso);
                 Pdata(nc).Length_from_Branch = PieaceDist;
-                
+
                 if obj.Segment.Size(3) == 1% old ver,sum(xyz(:,3) == 1 ) == size(xyz,1) % 2D
                     [Rad,UVec,Scal] = obj.CircleFit_Taubin((xyz-1).*Reso);
                 else
                     [Rad,UVec,Scal] = obj.SphereFit_LeastSquares((xyz-1).*Reso);
                 end
-               
+
                 Pdata(nc).SphereFitRadius = Rad;
                 Pdata(nc).SphereFitUnitVector = UVec;
                 Pdata(nc).SphereFitScalar = Scal;
-                
+
                 CV = (Length - DirectDist)/DirectDist;
                 if isinf(CV)
                     CV = nan;
                 end
                 Pdata(nc).Curvature =CV; % (Length - DirectLength)/(Directed Distance)
-                %% poler %%%%%%%%%%%%%%%%%%%%%%%%%%%%%                
+                %% poler %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 siz = size(Rad);
                 siz(1) = 1;
                 Increaser = cat(1,false(siz),diff(Rad,[],1)>0);
@@ -1280,7 +1386,7 @@ classdef Segment_Functions
 %                 se = strel('rectangle',[2 1]);
                 for RWind= 1:length(obj.RFitting_WindowSize)
                     RadiusLine = squeeze(Rad(:,1,RWind));
-                    for SAS = 1:length(obj.StraghtAS)                        
+                    for SAS = 1:length(obj.StraghtAS)
 %                         TF_straght = and(RadiusLine >= obj.StraghtAS(SAS),squeeze(~Poler(:,1,RWind)));
                         TF_straght = or(RadiusLine >= obj.StraghtAS(SAS),isnan(RadiusLine));
 %                         TF_curve = and(RadiusLine < obj.StraghtAS(SAS),squeeze(~Poler(:,1,RWind)));
@@ -1303,11 +1409,11 @@ classdef Segment_Functions
                         if isempty(CMR)
                             CMR = nan;
                         end
-%                         
+%
 %                         subEachLen = EachLen;
 %                         subEachLen(subEachLen==0)=nan;
-%                         NewNum = nnz(~isnan(subEachLen));                        
-                        Cmap(RWind,SAS) = CC_c.NumObjects;                        
+%                         NewNum = nnz(~isnan(subEachLen));
+                        Cmap(RWind,SAS) = CC_c.NumObjects;
                         CMRmap(RWind,SAS) = CMR;
                         NUMsmap(RWind,SAS) = NUMs;
 %                         NUMsmap(RWind,SAS) = NewNum;
@@ -1318,10 +1424,10 @@ classdef Segment_Functions
 %                         MinLenmap(RWind,SAS) = min(subEachLen,[],'omitnan');
 %                         MeanLenmap(RWind,SAS) = nanmean(subEachLen);
 %                         SDLenmap(RWind,SAS) = nanstd(subEachLen);
-                        
-                        
+
+
 %                         SDLenmap(RWind,SAS) = std(EachLen);  %%edit kusaka
-%                         
+%
 %                         subEachLencu = EachLencu;
 %                         subEachLencu(subEachLencu==0)=nan;
 %                         NewNumcu = nnz(~isnan(subEachLencu));
@@ -1330,25 +1436,25 @@ classdef Segment_Functions
 %                         MinLenmapcu(RWind,SAS) = min(subEachLencu,[],'omitnan');
 %                         MeanLenmapcu(RWind,SAS) = nanmean(subEachLencu);
 %                         SDLenmapcu(RWind,SAS) = nanstd(subEachLencu);
-                        
-                        
-                        
+
+
+
                     end
                 end
 %                 keyboard
-                Pdata(nc).CurveNumber = Cmap; 
-                Pdata(nc).CurveMinimumR = CMRmap;                
+                Pdata(nc).CurveNumber = Cmap;
+                Pdata(nc).CurveMinimumR = CMRmap;
                 Pdata(nc).StraghtNumber = NUMsmap;
                 Pdata(nc).StraghtSumationLength = SumLenmap;
                 Pdata(nc).StraghtMaximumLength = MaxLenmap;
                 Pdata(nc).StraghtMinimumLength = MinLenmap;
                 Pdata(nc).MeanLenmap = MeanLenmap;
-                
+
 %                 Pdata(nc).NewStraghtNumber = NewNum;
-%                 Pdata(nc).NewCurveNumber = NewNumcu; 
+%                 Pdata(nc).NewCurveNumber = NewNumcu;
 %                 Pdata(nc).SDStraghtLength = SDLenmap;
-%                 
-%                 Pdata(nc).SumLenmapcu = SumLenmapcu;                
+%
+%                 Pdata(nc).SumLenmapcu = SumLenmapcu;
 %                 Pdata(nc).MaxLenmapcu = MaxLenmapcu;
 %                 Pdata(nc).MinLenmapcu = MinLenmapcu;
 %                 Pdata(nc).MeanLenmapcu = MeanLenmapcu;
@@ -1367,24 +1473,24 @@ classdef Segment_Functions
                 Pdata(nc).SignalDiffMeanABS = nanmean(diff(Signal(:),1,1));
                 Pdata(nc).NoiseDiffMeanABS = nanmean(diff(Noise(:),1,1));
                 Pdata(nc).SNRDiffMeanABS = nanmean(diff(SNR(:),1,1));
-                Pdata(nc).DiameterDiffMeanABS = nanmean(diff(Diam(:),1,1));            
+                Pdata(nc).DiameterDiffMeanABS = nanmean(diff(Diam(:),1,1));
                 Pdata(nc).SignalDiffSD = nanstd(diff(Signal(:),1,1));
                 Pdata(nc).NoiseDiffSD = nanstd(diff(Noise(:),1,1));
                 Pdata(nc).SNRDiffSD = nanstd(diff(SNR(:),1,1));
                 Pdata(nc).DiameterDiffSD = nanstd(diff(Diam(:),1,1));
-                
+
                 xyz_real = (xyz -1).*Reso;
                 Dx = min( min(xyz_real(:,1)), min(abs(xyz_real(:,1)-FOV(1))) );
                 Dy = min( min(xyz_real(:,2)), min(abs(xyz_real(:,2)-FOV(2))) );
                 Dz = min( min(xyz_real(:,3)), min(abs(xyz_real(:,3)-FOV(3))) );
                 Pdata(nc).DistanceNearestEdgeXY = min([Dx,Dy]);
                 Pdata(nc).DistanceNearestEdgeZ = Dz;
-                
+
 %                 TS_WaiteProgress(nc/length(Pdata))
             end
             toc(Time)
             fprintf('Calculate Minimum Vecter Parallelism \n')
-            
+
             obj.Segment = NewSEG;
             parPdata = Pdata;
             for nc = 1:length(parPdata)
@@ -1396,20 +1502,20 @@ classdef Segment_Functions
                 ID = parPdata(nc).ID;
                 xyz_1st = parPdata(nc).PointXYZ(1,:);
                 IDs = obj.FindID_xyz(xyz_1st);
-                IDs(IDs==ID) = [];                
+                IDs(IDs==ID) = [];
                 if isempty(IDs)
                     val_1st = nan;
                 else
                     V0 = parPdata(nc).SphereFitUnitVector(1,:);
-                    try 
+                    try
                     val_1st = obj.Get_VecterParallelismS(...
                         V0,xyz_1st,obj.ID2Index(IDs),parPdata);
                     catch err
                         val_1st = nan;
                     end
                 end
-                
-                
+
+
                 xyz_end = parPdata(nc).PointXYZ(end,:);
                 IDs = obj.FindID_xyz(xyz_end);
                 IDs(IDs==ID) = [];
@@ -1434,6 +1540,7 @@ classdef Segment_Functions
             warning('on','all')
             fprintf('\n\n')
 			function NewSEG = InputCheck_AddSpatialPhisicalQuatity(obj,SEG)
+        % Used with AddSpatialPhysicalQuantityj
 					NewSEG = obj.set_Segment(SEG);
 					fprintf([mfilename 'Input check ....'])
 					for n = 1:length(NewSEG.Pointdata)
@@ -1452,11 +1559,15 @@ classdef Segment_Functions
 							error('Input SEG data has wrong size for Pointdata ....')
 						end
 					end
-			   end 
+			   end
         end
         function NewSEG = AddNormThetaXY(obj,SEG)
+          % NewSEG = self.AddNormThetaXY(SEG)
+          %
+          % Adds a normal vector angle in the XY plane
+          % core function is self.xyz2NormXYplane
             Pdata = SEG.Pointdata;
-            
+
             for n = 1:length(Pdata)
 %                 ID = Pdata(n).ID; %% should do all Segment. Ithink.
                 Pdata(n).NormThetaXY = ...
@@ -1466,12 +1577,18 @@ classdef Segment_Functions
             NewSEG.Pointdata = Pdata;
         end
         function NewSEG = AddAnalysisShoudBeElliptic(obj,SEG)
+          % NewSEG = self.AddAnalysisShoudBeElliptic(SEG)
+          %
+          % Add an index to see if the point should be ellipsed.
+          % Core function is self.xyz2Fai_AngleFromAxisZ()
+          % Used with AddSpatialPhysicalQuantityj()
+          % % % Under development.
             Pdata = SEG.Pointdata;
             SegReso = SEG.ResolutionXYZ;
             siz = SEG.Size;
             FaiLim = obj.EllipticFaiLim;
             LenLim = obj.EllipticLengthLim;
-            
+
             if siz(3)>1
                 for n = 1:length(Pdata)
                     Fai = obj.xyz2Fai_AngleFromAxisZ(Pdata(n).PointXYZ,SegReso);
@@ -1479,9 +1596,9 @@ classdef Segment_Functions
                     Pdata(n).AnalysisShoudBeElliptic =  abs(Fai) > FaiLim;
                 end
             else
-                
+
                 for n = 1:length(Pdata)
-                    Len = Pdata(n).Length; 
+                    Len = Pdata(n).Length;
                     pnum = size(Pdata(n).PointXYZ,1);
                     Pdata(n).Fai_AngleFromAxisZ = single(nan(pnum,1));
                     Pdata(n).AnalysisShoudBeElliptic = repmat(Len>LenLim,[pnum,1]);
@@ -1494,7 +1611,11 @@ classdef Segment_Functions
                     [num2str(FaiLim * 180/pi,'%.0f') ' degree'];
         end
         function NewSEG = BeardExtention(obj,SEG,AddLength)
-            % This is protorype
+          % NewSEG = self.BeardExtention(SEG,AddLength)
+          % This is protorype. Extend the Branch to End segment.
+          %
+          %  SEG       : Segmnet DateData
+          %  AddLength : Extention Lenght (um)
             NewSEG = SEG;
             Pdata = SEG.Pointdata;
             Reso = SEG.ResolutionXYZ;
@@ -1516,15 +1637,15 @@ classdef Segment_Functions
                 if FlipTF
                     sxyz = xyz(end,:);
                     unitV = Pdata(n).SphereFitUnitVector(end,:);
-                else                    
+                else
                     sxyz = xyz(1,:);
                     unitV = (-1)* Pdata(n).SphereFitUnitVector(1,:);
                 end
-                
+
                 ExtLen = 0;
                 nxyz = sxyz;
                 AddXYZ = [];
-                
+
                 while ExtLen < AddLength
                     nxyz = unitV + nxyz;
                     AddXYZ = cat(1,AddXYZ,nxyz);
@@ -1540,16 +1661,22 @@ classdef Segment_Functions
                     XYZ = cat(1,flip(AddXYZ,1),XYZ);
                     TF = cat(1,ATF,TF);
                 end
-                Pdata(n).PointXYZ = XYZ;                
+                Pdata(n).PointXYZ = XYZ;
                 Pdata(n).ExtantionTF = TF;
             end
             NewSEG.Pointdata = Pdata;
             NewSEG.BeardExtentionDate = TS_ClockDisp;
-            
+
         end
-        
-        
+
+
         function NewSEG = Euclid_Length_from_arteriovenous(obj,SEG)
+            % NewSEG = self.Euclid_Length_from_arteriovenous(SEG)
+            %
+            % $$ It will not work unless the arteries and veins are classified.
+            % Calculate the cumulative Euclidean distance and generation number
+            % from the arteriovenous class segment.
+            % Use the self.Chase function.
             obj.Segment = SEG;
             [Aid,Vid,Aind,Vind] = obj.FindID_Class_arteriovenous();
 %             NewSEG = [];
@@ -1568,7 +1695,7 @@ classdef Segment_Functions
 %             end
 %             obj.StartEndXYZ = XYZ_matrix;
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            obj.Chase_Limit = 1;
+            % obj.Chase_Limit = 20;
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % % Art.
             XYZ = zeros(2*length(Aind),3);
@@ -1588,7 +1715,7 @@ classdef Segment_Functions
             XYZ = obj.Delete_SamePointXYZ(XYZ);
             fprintf('   ####  Euclid Length from Veins #### \n')
             obj = obj.Euclid_Length_loop(XYZ,'Vein');
-            
+
             % % ArterioVenous
             Pdata = obj.Segment.Pointdata;
             for n = 1:length(Pdata)
@@ -1605,11 +1732,12 @@ classdef Segment_Functions
                 Pdata(n).GenerationsNum_ArterioVenous = nanmin(a_gen,v_gen);
             end
             obj.Segment.Pointdata = Pdata;
-            
+
             NewSEG = obj.Segment;
         end
-        
+
         function obj = Euclid_Length_loop(obj,XYZ,Class)
+          % Euclid_Length_from_arteriovenous loop function.
             for np = 1:size(XYZ,1)
                 xyz = XYZ(np,:);
                 try
@@ -1658,9 +1786,9 @@ classdef Segment_Functions
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% change /
             end
         end
-        
+
         function obj = Euclid_Length_core(obj,ind,FlipTF,GenerationsNum,Class)
-            
+            % Euclid_Length_from_arteriovenous core function.
             Pdata = obj.Segment.Pointdata(ind);
             Reso = obj.Segment.ResolutionXYZ;
             if max(strcmpi(Class,obj.Class_Artery))
@@ -1702,12 +1830,13 @@ classdef Segment_Functions
                 check_Gene = Pdata.(GeName);
                 Pdata.(GeName) = nanmin(GenerationsNum,check_Gene);
             end
-            
+
             obj.Segment.Pointdata(ind) = Pdata;
         end
         function BaseDist = GetBaseEuclidDist(obj,xyz,ID,Class)
             % BaseDist = GetBaseEuclidDist(xyz[1x3],ID,Class)
-            % xyz Must be in ID
+            % xyz Must be in self.Pointdata_ID(ID).PointXYZ
+            % Used in Euclid_Length_core
             D = nan(length(ID),1);
             for n = 1:length(ID)
                 Pdata = obj.Pointdata_ID(ID(n));
@@ -1725,12 +1854,12 @@ classdef Segment_Functions
                 BaseDist = 0;
             end
         end
-        
-        
+
+
         %%% for capillaro
         function [NewSEG,IDs] = ReSEG_Capillaro_bag(obj,SEG)
             % This is protorype
-            ReSegLen = 50; %% um                        
+            ReSegLen = 50; %% um
             Pdata = SEG.Pointdata;
             Reso = SEG.ResolutionXYZ;
             for n = 1:length(Pdata)
@@ -1740,9 +1869,9 @@ classdef Segment_Functions
                     Pdata(n).EndPoint_selfID = [];
                     continue
                 end
-                
+
                 xyz = Pdata(n).PointXYZ([1 end],:);
-                
+
                 if strcmpi(Type,'End to Branch')
                     b = Pdata(n).Branch;
                     len = obj.GetEachLength(xyz,b,Reso);
@@ -1754,19 +1883,19 @@ classdef Segment_Functions
                     FlipTF = ind ==1;
                     if FlipTF
                         x = xyz(1,1);y = xyz(1,2);
-                        selfIDs = [Pdata(n).ID size(xyz,1), x, y];                        
-                        unitV = Pdata(n).SphereFitUnitVector(end,:);                        
+                        selfIDs = [Pdata(n).ID size(xyz,1), x, y];
+                        unitV = Pdata(n).SphereFitUnitVector(end,:);
                     else
                         x = xyz(end,1);y = xyz(end,2);
-                        selfIDs = [Pdata(n).ID 1,x,y];                        
+                        selfIDs = [Pdata(n).ID 1,x,y];
                         unitV = (-1)* Pdata(n).SphereFitUnitVector(1,:);
-                    end                    
+                    end
                 else
                     selfIDs = [Pdata(n).ID 1;
                                Pdata(n).ID size(xyz,1)];
                     x = xyz([1 end],1);y = xyz([1 end],1);
                     selfIDs = cat(2,selfIDs,x,y);
-                    unitV = [ (-1)* Pdata(n).SphereFitUnitVector(1,:);                 
+                    unitV = [ (-1)* Pdata(n).SphereFitUnitVector(1,:);
                              Pdata(n).SphereFitUnitVector(end,:)];
                 end
                 pVal = zeros(size(x,1),2);
@@ -1801,35 +1930,35 @@ classdef Segment_Functions
                     counter = counter + 1;
                 end
                 [Dist,Ind] = min(Len_check);
-                
-                if Dist < ReSegLen 
+
+                if Dist < ReSegLen
                     IDs{IDcounter,1} = [SelfID(n-1,1) ID_check(Ind)];
                     IDcounter = IDcounter +1;
                 end
             end
-            
+
             %% having bag...
             TF = true(size(IDs,1),1);
             for c = 1:size(IDs,1)
                 check = IDs{c,:};
                 if check(1) == check(2)
                     TF(c) = false;
-                end                
+                end
             end
             IDs = IDs(TF,:);
             %%
-            
+
             keyboard
             NewSEG = obj.Connect(SEG,IDs);
         end
-        
+
         function [NewSEG,Mov] = ReSEG_Capillaro(obj,SEG)
             Pdata = SEG.Pointdata;
             ConnectLengthX = 100;
             ConnectLengthY = 10;
             FindingLim = 5;
             TargetIndIDxyz = [];
-            
+
             for n = 1:length(Pdata)
                 ID = Pdata(n).ID;
                 xyz = Pdata(n).PointXYZ;
@@ -1843,12 +1972,12 @@ classdef Segment_Functions
                     continue
                 end
                 if len1<FindingLim
-                    TargetIndIDxyz = cat(1,TargetIndIDxyz,[n ID xyz1 0]);                    
+                    TargetIndIDxyz = cat(1,TargetIndIDxyz,[n ID xyz1 0]);
                 end
                 if len2<FindingLim
-                    TargetIndIDxyz = cat(1,TargetIndIDxyz,[n ID xyz2 1]);                    
+                    TargetIndIDxyz = cat(1,TargetIndIDxyz,[n ID xyz2 1]);
                 end
-            end           
+            end
             Inds = {};
             c = 1;
             p = SEGview(SEG,'ID');
@@ -1918,15 +2047,20 @@ classdef Segment_Functions
                 Pdata(end).OriginalPointXYZ = xyz;
             end
             NewSEG = SEG;
-%             
+%
 %             Pdata = NewSEG.Pointdata;
 %             ID = cat(1,Pdata.ID);
-%             Pdata = Pdata(ID>0);            
-            NewSEG.Pointdata = Pdata;            
+%             Pdata = Pdata(ID>0);
+            NewSEG.Pointdata = Pdata;
         end
-       
-        
+
+
         function NewSEG = SmoothingSEG(obj,SEG,NewStep,XYZrange)
+            % NewSEG = self.SmoothingSEG(SEG,NewStep,XYZrange)
+            %
+            % SEG      : Segment data.
+            % NewStep  : Resampling ratio [um/voxel]
+            % XYZrange : Reference windows Size for smoothing. [X,Y,Z] [um]
             obj.ResamplingRate = NewStep;
             obj.ResamplingDenoiseWindowSize = XYZrange;
             NewSEG = obj.ResampllingSEG(SEG);
@@ -1940,9 +2074,9 @@ classdef Segment_Functions
             if length(XYZrange)<3
                 XYZrange = repmat(XYZrange,[1 3]);
             end
-            
+
             Step = NewStep; % um
-            if XYZrange(1) ~= XYZrange(2) 
+            if XYZrange(1) ~= XYZrange(2)
                 error('Incorrect input')
             end
             xy_range = XYZrange(1); %11; % um
@@ -1951,13 +2085,13 @@ classdef Segment_Functions
             Reso = SEG.ResolutionXYZ;
             for n = 1:length(Pdata)
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                try 
+                try
                     xyz = Pdata(n).OriginalPointXYZ;%%%%%
                     if isempty(xyz)
                         xyz = Pdata(n).PointXYZ;
                         Pdata(n).OriginalPointXYZ = xyz;
                     end
-                catch err                    
+                catch err
                     xyz = Pdata(n).PointXYZ;
                     Pdata(n).OriginalPointXYZ = xyz;
                 end
@@ -1989,15 +2123,22 @@ classdef Segment_Functions
             end
             SEG.Pointdata = Pdata;
             SEG.ResamplingRate = [num2str(obj.ResamplingRate,'%.1f') ' um'];
-            SEG.ResamplingInterpWindwSize = [num2str(obj.ResamplingDenoiseWindowSize,'%.1f') ' um']; 
+            SEG.ResamplingInterpWindwSize = [num2str(obj.ResamplingDenoiseWindowSize,'%.1f') ' um'];
             NewSEG = SEG;
             NewSEG.Resampling = TS_ClockDisp;
             function Newxyz = resampling(obj,xyz,Reso,Step,xyR,zR)
+                % Newxyz = self.resampling(xyz,Reso,Step,xyR,zR)
+                %
+                % xyz     : pre-resamplingXYZ
+                % Reso    ; Resolution of pre-resamplingXYZ
+                % Step    : New resampling ratio.
+                % xyR     : Reference radius for smoothing in XY -axis.
+                % zR      : Reference radius for smoothing in Z -axis.
                 if size(xyz,1)==1
                     Newxyz = xyz;
                     return
                 end
-                    
+
                 Elen = obj.xyz2plen(xyz,Reso);
                 if length(Elen)>1
                     if max(Elen(2:end)==0)
@@ -2008,7 +2149,7 @@ classdef Segment_Functions
                     end
                 end
                 max_len = sum(Elen);
-                % % Resampling % % % 
+                % % Resampling % % %
                 Resample = linspace(0,max_len,ceil(max_len/Step));
                 NewReso = max_len/(length(Resample)-1);
                 Elen_p = cumsum(Elen);
@@ -2024,7 +2165,7 @@ classdef Segment_Functions
                 Nx = interp1(Elen_p,xyz(:,1),Resample,Type);
                 Ny = interp1(Elen_p,xyz(:,2),Resample,Type);
                 Nz = interp1(Elen_p,xyz(:,3),Resample,Type);
-                
+
                 % % Smootihing % %
                 Nxq = TS_MovingAverage(Nx,ceil(xyR/NewReso));
                 Nyq = TS_MovingAverage(Ny,ceil(xyR/NewReso));
@@ -2040,15 +2181,18 @@ classdef Segment_Functions
                 if sum(diff(cat(1,Newxyz(end,:),xyz(end,:)),[],1))~=0
                     Newxyz = cat(1,Newxyz,xyz(end,:));
                 end
-                              
-            end            
+
+            end
         end
         function NewSEG = SmoothingSEG_Bspline(obj,SEG,NewStep)
             % NewSEG = SmoothingSEG_Bspline(obj,SEG,NewStep)
             % NewStep \ um
             % Core Function is obj.BsplineFunc, obj.xyzSmooth_Bspline
-            
-            Step = NewStep; % um 
+            %
+            % Under developing.
+            %  (c) Hiroki Suzuki.
+
+            Step = NewStep; % um
             SEG = obj.set_Segment(SEG);
             Pdata = SEG.Pointdata;
             Reso = SEG.ResolutionXYZ;
@@ -2058,10 +2202,10 @@ classdef Segment_Functions
                 Branch(isnan(Branch(:,1)),:) = [];
                 [~,P] = obj.BranchInXYZ(Branch,xyz,Reso);
                 NewXYZ = [];
-                if length(P)>=2                    
+                if length(P)>=2
                     for pn = 2:length(P)
-                        peace_xyz = xyz(P(pn-1):P(pn),:);                        
-                        resamplingXYZ = obj.xyzSmooth_Bspline_Reso(peace_xyz,Reso,Step);                        
+                        peace_xyz = xyz(P(pn-1):P(pn),:);
+                        resamplingXYZ = obj.xyzSmooth_Bspline_Reso(peace_xyz,Reso,Step);
                         NewXYZ = cat(1,NewXYZ,resamplingXYZ);
                     end
                     Plen = obj.xyz2plen(NewXYZ,Reso);
@@ -2076,7 +2220,7 @@ classdef Segment_Functions
                 Pdata(n).Length = sum(len);
             end
             SEG.Pointdata = Pdata;
-            SEG.Resampling = mfilename;            
+            SEG.Resampling = mfilename;
             NewSEG = obj.set_Segment(SEG);
         end
         %% Support Functions
@@ -2108,7 +2252,7 @@ classdef Segment_Functions
                 val = nan;
             end
         end
-                
+
         function PieaceDist = DistanceFromBranch(obj,xyz,Branch,Reso)
             Branch(isnan(Branch(:,1)),:) = [];
             [P,Pd] = obj.BranchInXYZ(Branch,xyz,Reso);
@@ -2117,7 +2261,7 @@ classdef Segment_Functions
                 EndPd = true(1,length(Pd));
                 for n = [1, length(Pd)]
                     EndPd(n) = max(Pd(n)==P);
-                end                
+                end
                 for pn = 1:length(Pd)-1
                     peace_xyz = xyz(Pd(pn):Pd(pn+1),:);
                     if pn==1
@@ -2127,7 +2271,7 @@ classdef Segment_Functions
                         else
                             cD = Function_Branchdistance(obj,peace_xyz,Reso);
                         end
-                    elseif pn==length(Pd)-1                        
+                    elseif pn==length(Pd)-1
                         if ~EndPd(end)
                             D = obj.xyz2plen(peace_xyz,Reso);
                             cD = cumsum(D);
@@ -2147,8 +2291,8 @@ classdef Segment_Functions
                 cDi2 = flip(cumsum(Di),1);
                 Distance = min(cat(2,cDi1,cDi2),[],2);
             end
-        end                
-              
+        end
+
         function check_Pairs(obj,Pairs)
             if ~iscell(Pairs)
                 error('Input "Pair(s)" is NOT cell class.')
@@ -2160,10 +2304,10 @@ classdef Segment_Functions
             for n = 1:length(Pairs)
                 Ind = Pairs{n};
                 if ~isvector(Ind)
-                    error('Input Ind data in Pairs is NOT vector.') 
+                    error('Input Ind data in Pairs is NOT vector.')
                 end
                 if numel(Ind) <= 1
-                    error('Input Ind data in Pairs should NOT BE less than 1 Numel.') 
+                    error('Input Ind data in Pairs should NOT BE less than 1 Numel.')
                 end
                 check_Ind = cat(1,check_Ind,Ind(:));
             end
@@ -2187,8 +2331,8 @@ classdef Segment_Functions
             if ~iscell(Pairs)
                 output_cell2mat = true;
                 Pairs = {Pairs};
-            end           
-            
+            end
+
              Index = Pairs;
              for x = 1:length(Pairs)
                  ID = Pairs{x};
@@ -2206,7 +2350,7 @@ classdef Segment_Functions
              if output_cell2mat
                  Index = cell2mat(Index);
              end
-             
+
         end
         function NewSEG = ...
                 ResamplingIDs_Emargency_existing_Same_IDs(obj,SEG)
@@ -2232,8 +2376,8 @@ classdef Segment_Functions
             end
             NewSEG = SEG;
             NewSEG.Pointdata = Pdata;
-        end        
-        
+        end
+
         function NewSEG = ReCheckType(obj)
             Pdata = obj.Segment.Pointdata;
             c = 0;
@@ -2243,17 +2387,17 @@ classdef Segment_Functions
                     %% Check Type 2019.06.13, edit %%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % End point    --> 1,
                     % Branch point --> 3,
-                    % So, 
-                    % E2E   = 2,  E2B = 4, B2B = 6            
+                    % So,
+                    % E2E   = 2,  E2B = 4, B2B = 6
                     Check_Edge = nan(1,2);
                     check_xyz = xyz([1 end],:);
                     for n =1:2
 %                       %%% Id_count = obj.FindID_xyz_edge(check_xyz(n,:));
-                        % If Parent Vascular has some branch point,... 
+                        % If Parent Vascular has some branch point,...
                         % it shoud not be used obj.FindID_xyz_edge func..
                         Id_count = obj.FindID_xyz(check_xyz(n,:));
                         Id_count(isnan(Id_count)) = [];
-                        if numel(Id_count)>1                    
+                        if numel(Id_count)>1
                             Check_Edge(n) = 3;
                         else
                             Check_Edge(n) = 1;
@@ -2276,17 +2420,17 @@ classdef Segment_Functions
                         fprintf(['\n        to   ' SegmentType '\n\n'])
                         Pdata(k).Type = SegmentType;
                         c = c + 1;
-                    end            
+                    end
                 else
-                    Pdata(k).Type = 'Others';                    
+                    Pdata(k).Type = 'Others';
                 end
             end
             obj.Segment.Pointdata = Pdata;
             NewSEG = obj.Segment;
             fprintf(['   Changed # ' num2str(c) '\n'])
         end
-        
-        
+
+
         function [index,Type] = Find_EndSEG(obj,Pdata)
             index_E2E = false(length(Pdata),1);
             index_E2B = false(length(Pdata),1);
@@ -2298,7 +2442,7 @@ classdef Segment_Functions
             end
             End_Exist = or(max(index_E2E),max(index_E2B));
             Branch_Exist = or(max(index_B2B),max(index_E2B));
-            if ~Branch_Exist            
+            if ~Branch_Exist
                 Type = 'End to End';
             elseif and(End_Exist,Branch_Exist)
                 Type = 'End to Branch';
@@ -2311,10 +2455,10 @@ classdef Segment_Functions
                 index = index_E2B;
             else
                 index = true;
-            end        
+            end
             p = find(index);
             index = p(1);
-        end      
+        end
         function [Index,TF_flip_Parent,TF_flip_Foward,Err] =...
                 FindNearestID(obj,xyz1,Pdata,sort_index,Reso)
             % just use for Connect Func.
@@ -2326,19 +2470,19 @@ classdef Segment_Functions
             end
             xyz1 = xyz1([1, end],:);
             Len_map = obj.GetEachLength(xyz1,xyz2,Reso);
-                        
+
             [len1,ind1] = min(Len_map(:,1));
-            ind1 = ind1(1);        
+            ind1 = ind1(1);
             [len2,ind2] = min(Len_map(:,2));
             ind2 = ind2(1);
-            
-            
+
+
             if ~(len1==0 || len2 ==0)
                 Err = 'Error : None Share Branch Point';
             else
                 Err = [];
             end
-            if len1 <= len2            
+            if len1 <= len2
                 Index = p(ceil(ind1/2));
                 TF_flip_Parent = true;
                 TF_flip_Foward = ceil(ind1/2) == floor(ind1/2);
@@ -2348,15 +2492,15 @@ classdef Segment_Functions
                 TF_flip_Foward = ceil(ind2/2) == floor(ind2/2);
             end
         end
-        
+
         %% Chase Vascular Segment ,Core Func.
         function [IDs,FlipTFs] = FindNextSegment(obj,ID,FlipTF,varargin)
             % ID must Be 1 numel
             %% %% %% Cat Limit #################
             CatLimit = obj.Chase_Limit;%%%%%%%%%%%%%%%%%%%%%%%
             %% %% %% %%#################%%%%%%%%
-            catID = cat(1,obj.Segment.Pointdata.ID);            
-            XYZ = obj.StartEndXYZ;            
+            catID = cat(1,obj.Segment.Pointdata.ID);
+            XYZ = obj.StartEndXYZ;
             SegInd = catID == ID;
             if FlipTF
                 xyz = XYZ(1,:,SegInd);
@@ -2378,7 +2522,7 @@ classdef Segment_Functions
                 FlipTFs = varargin{4};
                 %fprintf(['-' num2str(chase_index(end))])
             end
-            
+
             if length(chase_index)>1
                 XYZ = obj.StartEndXYZ;
                 XYZ = XYZ(:,:,chase_index(1:end-1));
@@ -2392,7 +2536,7 @@ classdef Segment_Functions
             NextIndex(:,chase_index) = false;
             if and(max(NextIndex(:)),~check_same_branch_TF) && length(IDs)< CatLimit
                 [y,x] = find(NextIndex);
-                for n = 1:length(y)                    
+                for n = 1:length(y)
                     [IDs,FlipTFs] = obj.FindNextSegment(...
                         catID(x(n)),y(n)==2,chase_index,chase_FlipTFs,...
                         IDs,FlipTFs);
@@ -2403,7 +2547,7 @@ classdef Segment_Functions
 %                 fprintf(['      IDs : ' num2str(reshape(catID(chase_index),1,[])) '\n'])
                 IDs = cat(1,IDs,{catID(chase_index)});
                 FlipTFs = cat(1,FlipTFs,{chase_FlipTFs});
-            end            
+            end
         end
         function index = FindSameStartEndXYZ(obj,xyz,varargin)
             if nargin ==2
@@ -2423,7 +2567,7 @@ classdef Segment_Functions
             CutInd = false(size(xyz,1),1);
             for n = 1:size(xyz,1)
                 if Label(n)==0
-                    f = xyz(n,:);                    
+                    f = xyz(n,:);
                     XYZ(n,:) = nan;
                     Label(n) = c;
                     tf = true(size(xyz,1),1);
@@ -2432,7 +2576,7 @@ classdef Segment_Functions
                     end
                     XYZ(tf,:) = nan;
                     Label(tf) = c;
-                    CutInd = or(CutInd,tf);                        
+                    CutInd = or(CutInd,tf);
                     c = c+1;
                 else
                     continue
@@ -2446,7 +2590,7 @@ classdef Segment_Functions
             MapLen = obj.GetEachLength(p1,p2,Reso);
             [MinimumLength,IndexSort] = min(MapLen(:));
         end
-        
+
         function Len_map = GetEachLength(obj,xyz1,xyz2,Reso)
             Len_map = zeros(size(xyz2,1),size(xyz1,1));
             for n = 1:size(xyz1,1)
@@ -2465,29 +2609,29 @@ classdef Segment_Functions
                 len  = obj.GetEachLength(xyz1,NewBranch,Reso);
                 check_branch = len(:,1) == 0;
                 Branch = cat(1,Branch,NewBranch(check_branch,:));
-            end        
+            end
             if isempty(Branch)
                 Branch = nan(1,3);
             end
         end
-         
+
         function [BranchIndex,AddEdgeIndex] = BranchInXYZ(obj,Branch,xyz,Reso)
             if isempty(Branch)
                 BranchIndex = [];
                 AddEdgeIndex = [];
                 return
             end
-            p = nan(1,size(Branch,1));            
+            p = nan(1,size(Branch,1));
             for n = 1:length(p)
-                b = Branch(n,:);               
+                b = Branch(n,:);
                 x = xyz(:,1) == b(1);
                 y = xyz(:,2) == b(2);
-                z = xyz(:,3) == b(3);               
+                z = xyz(:,3) == b(3);
                 P = find(and(and(x,y),z));
                 if isempty(P)
                     len = obj.GetEachLength(xyz,b,Reso);
                     [~,ind] = min(len);
-                    p(n) = ind(1);                    
+                    p(n) = ind(1);
                 elseif numel(P) > 1
 %                     error('Same Point are existing in Input Segment')
 %                     warning('Same Point are existing in Input Segment')
@@ -2526,11 +2670,11 @@ classdef Segment_Functions
             output_XYZ = XYZ;
             DI = DeleteInd;
         end
-        
-        
+
+
         function [Aid,Vid,Aind,Vind] = FindID_Class_arteriovenous(obj)
             % [Aid,Vid,Aind,Vind] = FindID_Class_arteriovenous()
-            % 
+            %
             % Use This.Segment
             % Output :
             % Aid, Vid are Artery ID and Vein ID.
@@ -2555,7 +2699,7 @@ classdef Segment_Functions
                 end
             end
         end
-        
+
         function ID = FindID_xyz(obj,XYZ)
             x = XYZ(1);
             y = XYZ(2);
@@ -2570,7 +2714,7 @@ classdef Segment_Functions
                 TFy = max(xyz(:,2) == y);
                 TFz = max(xyz(:,3) == z);
                 TF = TFx && TFy && TFz;
-                if TF 
+                if TF
                     ID = cat(2,ID,Pdata(n).ID);
                 end
             end
@@ -2589,7 +2733,7 @@ classdef Segment_Functions
                 TFy = max(xyz(:,2) == y);
                 TFz = max(xyz(:,3) == z);
                 TF = TFx && TFy && TFz;
-                if TF 
+                if TF
                     ID = [ID Pdata(n).ID];
                 end
             end
@@ -2598,7 +2742,7 @@ classdef Segment_Functions
             fprintf('##### Delete loop Segment #####')
             Pdata = obj.Segment.Pointdata;
             cut_Length = obj.Segment.cutlen;
-            
+
             for n = 1:length(Pdata)
                 if Pdata(n).ID < 1
                     continue
@@ -2615,15 +2759,15 @@ classdef Segment_Functions
                 end
             end
             obj.Segment.Pointdata = Pdata;
-            fprintf('Done: Delete loop Segment ##### \n')            
+            fprintf('Done: Delete loop Segment ##### \n')
         end
-        
+
         function [NewSEG,none_cut_SEG] = ModifySEG(obj)
             tic
             %% Delete Loop Segment. It was found 2019.5.26.
             % PointXYZ(1,:) == PointXYZ(end,:) && Length <= SEG.cutlen
-            obj = obj.Delete_loopSegment();           
-            
+            obj = obj.Delete_loopSegment();
+
 %             fprintf('/n ## ## ## /n Befor Modify Branch Point Matrix.,/n')
 %             obj.Segment.BPmatrix
             obj = obj.Modify_BranchPointMatrix();
@@ -2638,15 +2782,15 @@ classdef Segment_Functions
             fprintf('#### Starting Finding Connect Pairs. ########\n')
             ConnectBranch = BPmatrix(BPmatrix(:,5) == 2,:);
             connectID = nan(size(ConnectBranch,1),2);
-            
-            for n = 1:size(ConnectBranch,1)                
-                
+
+            for n = 1:size(ConnectBranch,1)
+
                 connect_ids = obj.FindID_xyz_edge(ConnectBranch(n,1:3));
                 try
                     connectID(n,:) = connect_ids(1:2);
                 catch err
                     fprintf('***** Error, in Finding both end of Branch Connection Segment ID ]n')
-                    fprintf([err.message '\n'])                    
+                    fprintf([err.message '\n'])
                     fprintf(['    XYZ = : ' num2str(ConnectBranch(n,:)) '\n'])
                     fprintf(['    IDs   : ' num2str(connect_ids) '\n'])
                     continue
@@ -2657,7 +2801,7 @@ classdef Segment_Functions
             connectID(isnan(connectID(:,1)),:) = [];
             N = 1;
             Nmax = size(connectID,1);
-            
+
             if Nmax ~= 0
                 c = 1;
                 IDs = [];
@@ -2673,7 +2817,7 @@ classdef Segment_Functions
                     connectID(N,1) = nan;
                     margeID = sID_L;
                     [margeID,connectID] = FindNextIDs(sID_L,connectID,margeID);
-                    % Right                
+                    % Right
                     connectID(N,2) = nan;
                     margeID = [margeID sID_R];
                     [margeID,connectID] = FindNextIDs(sID_R,connectID,margeID);
@@ -2681,9 +2825,9 @@ classdef Segment_Functions
                     %% Next
                     IDs{c} = margeID;
                     c = c + 1;
-                    N = find(~isnan(connectID(:,1)),1);                
+                    N = find(~isnan(connectID(:,1)),1);
                 end
-                TS_WaiteProgress(1)               
+                TS_WaiteProgress(1)
                 fprintf('   Finish Finding Connect Pairs. \n')
                 %% Connect.
                 % delete same index, just 1 numel pair,;
@@ -2715,7 +2859,7 @@ classdef Segment_Functions
             end
              function [IDs,ConnectMatrix] = FindNextIDs(sID,Connects,margeID)
                     [L,R] = find(Connects == sID);
-                    if isempty(L)                    
+                    if isempty(L)
                         IDs = margeID;
                         ConnectMatrix = Connects;
                     elseif numel(L) > 1
@@ -2723,7 +2867,7 @@ classdef Segment_Functions
                         IDs = margeID;
                         Connects(L,:) = nan;
                         ConnectMatrix = Connects;
-                    else               
+                    else
                         if R == 1
                             nID = Connects(L,2);
                         else
@@ -2732,10 +2876,10 @@ classdef Segment_Functions
                         % margeID = [margeID, Connects(L,R)];
                         Connects(L,:) = nan;
                         margeID = [margeID, sID, nID];
-                        [IDs,ConnectMatrix] = FindNextIDs(nID,Connects,margeID);                
-                    end                
+                        [IDs,ConnectMatrix] = FindNextIDs(nID,Connects,margeID);
+                    end
                 end
-            
+
             %% Reset up BP matrix.
             fprintf('####   Reset up BP matrix......  ######## \n')
             obj.Segment = NewSEG;
@@ -2752,12 +2896,12 @@ classdef Segment_Functions
             end
             TS_WaiteProgress(1)
             obj.Segment.BPmatrix = BPmatrix;
-            
-            %% Re Check Type 
+
+            %% Re Check Type
             NewSEG = obj.ReCheckType();
             obj.Segment = NewSEG;
-                        
-            %% output 
+
+            %% output
             none_cut_SEG = obj.Segment;
             Pdata = obj.Segment.Pointdata;
             catID = cat(1,Pdata.ID);
@@ -2766,7 +2910,7 @@ classdef Segment_Functions
             fprintf(['    Finish : ' mfilename '\n'])
             toc
             fprintf('\n ######## ######## ######## ######## ######## ######## \n')
-            
+
         end
         function Output = Modify_BranchPointMatrix(obj,varargin)
             % Output = Modify_BranchPointMatrix(obj,varargin)
@@ -2777,7 +2921,7 @@ classdef Segment_Functions
             %     SEG = varargin{1};
             %     Output <-- NewBPmatrix
             % end
-            
+
             if nargin ==1
                 SEG = obj.Segment;
             else
@@ -2788,10 +2932,10 @@ classdef Segment_Functions
             XYZ_matrix = zeros(length(Pdata)*2,3);
             for n = 1:length(Pdata)
                 XYZ_matrix(n*2-1,:) = Pdata(n).PointXYZ(1,:);
-                XYZ_matrix(n*2,:) = Pdata(n).PointXYZ(end,:);                
+                XYZ_matrix(n*2,:) = Pdata(n).PointXYZ(end,:);
             end
-            
-            
+
+
             %%%% 2019. 25th, March edit by Sugashi%%%%%%%%%%%%%%%%%%%
             BPmatrix = nan(size(XYZ_matrix));
             c = 1;
@@ -2808,7 +2952,7 @@ classdef Segment_Functions
             end
             BPmatrix(isnan(BPmatrix(:,1)),:) = [];
             BPmatrix = cat(2,BPmatrix,nan(size(BPmatrix,1),2));
-            
+
             for n = 1:size(BPmatrix,1)
                 xyz = BPmatrix(n,:);
                 sameX = XYZ_matrix(:,1) == xyz(1);
@@ -2818,8 +2962,8 @@ classdef Segment_Functions
                 BPmatrix(n,5) = sum(TF);
             end
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            
+
+
             %%%%%%%%%%% Old version %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %             TF = true;
 %             c = 1;
@@ -2838,7 +2982,7 @@ classdef Segment_Functions
 %                 Num = 1 + numel(p);
 %                 BPmatrix = cat(1,BPmatrix,[xyz,nan,Num]);
 %             end
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if nargin ==1
                 SEG.BPmatrix = BPmatrix;
                 obj.Segment = SEG;
@@ -2846,14 +2990,14 @@ classdef Segment_Functions
             else
                 Output = BPmatrix;
             end
-            
+
         end
         function NormTheta = xyz2NormXYplane(obj,xyz,varargin)
             % [NormTheta,Pasu] = TS_xyz2Norm(xyx,RefLen,{Reso})
-            % input 
-            %     xy(z) ; xyz index,if nx3 matrix , xyz = xyz(:,1:2); 
+            % input
+            %     xy(z) ; xyz index,if nx3 matrix , xyz = xyz(:,1:2);
             %     RefLen  ; more than 1 point.
-            % 
+            %
             % output
             %     NormTheta
             %     ...  pasu = mean((diff(y)) / mean(diff(x))
@@ -2883,7 +3027,7 @@ classdef Segment_Functions
 %                 catch err
 %                     keyboard
 %                 end
-               
+
                 if n ==1
                     pnum = bottomLen;
                 else
@@ -2904,9 +3048,9 @@ classdef Segment_Functions
             if length(Reso) ~= 3
                 error('Input Resolution must be 3 numel.')
             end
-            
+
             Fai = zeros(size(xyz,1),1);
-            
+
             Refp = obj.FaiReferenceLength/2;
             for n = 1:length(Fai)
                 bottomLen = cumsum(obj.xyz2plen(xyz(n:end,:),Reso));
@@ -2919,8 +3063,8 @@ classdef Segment_Functions
                 end
 %                 ind = and(pnum >= n -1, pnum <= n +1);
                 ind = pnum <=Refp;
-               
-                
+
+
                  [UnitVec,~] = obj.xyz2Vector(xyz(ind,:),Reso);
                 Theta = obj.UnitVector2Theta(UnitVec,[0 0 1]);
                 if Theta > pi/2
@@ -2935,10 +3079,10 @@ classdef Segment_Functions
                 a = xyz(n,:) - xyz(n-1,:);
                 b = xyz(n+1,:) - xyz(n,:);
                 Cos = (a.*b)/(sqrt(sum(a.^2))*sqrt(b.^2));
-                Bending(n) = acos(Cos);                
+                Bending(n) = acos(Cos);
             end
         end
-        
+
         %% xyz2CalcR_old
         function PPar = xyz2CalcR(~,xyz,val)
             len = size(xyz,1);
@@ -2948,10 +3092,10 @@ classdef Segment_Functions
             for n = 1:len
                 pxy = xyz(n:n+val*2,:);
                 P = CircleFitByTaubin(pxy);
-                PPar(n,:) = P;                
+                PPar(n,:) = P;
             end
         end
-        %% NewCalcR 
+        %% NewCalcR
         function [R,UVec,Scal] = CircleFit_Taubin(obj,xyz,varargin)
             if nargin > 3
                 WindowRSize = varargin{2};
@@ -2965,7 +3109,7 @@ classdef Segment_Functions
             Scal = nan(size(xyz,1),1,length(WindowRSize));
             for n = 1:size(xyz,1)
                 TL = obj.TrackingLength(xyz,ones(1,3),n);
-                for WRind = 1:length(WindowRSize)                    
+                for WRind = 1:length(WindowRSize)
                     Indices = TL <= WindowRSize(WRind);
                     try
                         Taubin = CircleFitByTaubin(xyz(Indices,1:2));
@@ -2973,11 +3117,11 @@ classdef Segment_Functions
                         Taubin = nan(1,3);
                     end
                     Rad = Taubin(3);
-                    R(n,1,WRind) = Rad; 
+                    R(n,1,WRind) = Rad;
                     [UV,S] = obj.xyz2Vector(xyz(Indices,:));
                     UVec(n,:,WRind) = UV;
                     Scal(n,1,WRind) = S;
-                end         
+                end
             end
         end
         function [R,UVec,Scal] = SphereFit_pcfitsphere(obj,xyz,varargin)
@@ -2988,7 +3132,7 @@ classdef Segment_Functions
                 MaxDistance = varargin{1};
             else
                 MaxDistance = obj.RFitting_MaxDistance;
-            end            
+            end
             if nargin > 3
                 WindowRSize = varargin{2};
             else
@@ -3008,16 +3152,16 @@ classdef Segment_Functions
                 M = pcfitsphere(ptCloudIn,MaxDistance,'SampleIndices',Indices);
 %                 [Rad,~] = obj.SphereFit(xyz(Indices,:));
                 if and(sum(M.Center) ==0,M.Radius ==0)
-                    R(n) = nan;                
+                    R(n) = nan;
                 else
                     R(n) = M.Radius;
                 end
-%                 R(n) = Radius;                
+%                 R(n) = Radius;
                 [UV,S] = obj.xyz2Vector(xyz(Indices,:));
                 UVec(n,:) = UV;
                 Scal(n) = S;
-            end            
-            %%%% Add for nan space %%%%% 2019 09 08            
+            end
+            %%%% Add for nan space %%%%% 2019 09 08
             TFnan = isnan(R);
             if or(~max(TFnan),sum(TFnan)==numel(R))
                 return
@@ -3028,9 +3172,9 @@ classdef Segment_Functions
             Rad_interp(TFnan) = [];
             xind(TFnan) = [];
             NewRad = interp1(xind,Rad_interp,vx,'linear');
-            R(TFnan) = NewRad;            
+            R(TFnan) = NewRad;
         end
-        function [R,UVec,Scal] = SphereFit_LeastSquares(obj,xyz,varargin)                             
+        function [R,UVec,Scal] = SphereFit_LeastSquares(obj,xyz,varargin)
             if nargin > 3
                 WindowRSize = varargin{2};
             else
@@ -3049,12 +3193,12 @@ classdef Segment_Functions
                     Center(3) - WindowRSize,Center(3) + WindowRSize];
                 Indices = findPointsInROI(ptCloudIn,Range);
                 [Rad,~] = obj.SphereFit(xyz(Indices,:));
-                R(n) = Rad;                
+                R(n) = Rad;
                 [UV,S] = obj.xyz2Vector(xyz(Indices,:));
                 UVec(n,:) = UV;
                 Scal(n) = S;
-            end            
-            %%%% Add for nan space %%%%% 2019 09 08            
+            end
+            %%%% Add for nan space %%%%% 2019 09 08
             TFnan = or(isnan(R),isinf(R));
             if or(~max(TFnan),sum(TFnan)==numel(R))
                 return
@@ -3065,15 +3209,15 @@ classdef Segment_Functions
             Rad_interp(TFnan) = [];
             xind(TFnan) = [];
             NewRad = interp1(xind,Rad_interp,vx,'linear');
-            R(TFnan) = NewRad;            
+            R(TFnan) = NewRad;
         end
-        
+
         %% will be delete
         function interp_xyz = Emaergency_isnanxyz(~,xyz)
             x = extrap_interp1_emarg(xyz(:,1));
             y = extrap_interp1_emarg(xyz(:,2));
             z = extrap_interp1_emarg(xyz(:,3));
-            interp_xyz = cat(2,x(:),y(:),z(:));            
+            interp_xyz = cat(2,x(:),y(:),z(:));
             function nx = extrap_interp1_emarg(x)
                 tfx = or(isnan(x),isinf(x));
                 if sum(tfx)~=0
@@ -3087,14 +3231,14 @@ classdef Segment_Functions
                 end
             end
         end
-        
+
          %% Sphere Fitting (Ref. Alan Jennings, University of Dayton)
         function [Radius,Center] = SphereFit(~,X)
            % [Radius,Center] = SphereFit(~,XYZ)
            % Original function is SphereFitByLeastSquares by Alan Jennings, University of Dayton
-           
+
            % this fits a sphere to a collection of data using a closed form for the
-            % solution (opposed to using an array the size of the data set). 
+            % solution (opposed to using an array the size of the data set).
             % Minimizes Sum((x-xc)^2+(y-yc)^2+(z-zc)^2-r^2)^2
             % x,y,z are the data, xc,yc,zc are the sphere's center, and r is the radius
             % Assumes that points are not in a singular configuration, real numbers, ...
@@ -3104,7 +3248,7 @@ classdef Segment_Functions
             % Input:
             % X: n x 3 matrix of cartesian data
             % Outputs:
-            % Center: Center of sphere 
+            % Center: Center of sphere
             % Radius: Radius of sphere
             % Author:
             % Alan Jennings, University of Dayton
@@ -3132,18 +3276,18 @@ classdef Segment_Functions
             CumLen = cumsum(Plen);
             TL = abs(CumLen - sum(Plen(1:CenterInd)));
         end
-        
+
         %% Tracking for nearest xyz2ID
-        function TrackingData = TrackingDays_FindNearestIDs(obj,SEG1,SEG2)            
+        function TrackingData = TrackingDays_FindNearestIDs(obj,SEG1,SEG2)
             catID = cat(1,SEG1.Pointdata.ID);
             SEG1.Pointdata = SEG1.Pointdata(catID>0);
             obj.Segment = SEG1;
-            
+
             S = Segment_Functions;
             catID = cat(1,SEG2.Pointdata.ID);
             SEG2.Pointdata = SEG2.Pointdata(catID>0);
             S.Segment = SEG2;
-            
+
             %% xyz1(base) to xyz2(object)
             Num = length(obj.Segment.Pointdata);
             objXYZ = cat(1,S.Segment.Pointdata.PointXYZ);
@@ -3166,7 +3310,7 @@ classdef Segment_Functions
                     end
                 end
                 IDs(isnan(IDs)) = [];
-                IDs = sort(IDs);                
+                IDs = sort(IDs);
                 p = diff([IDs; inf])>0;
                 x_id = IDs(p);
                 index = cell2mat(S.ID2Index({x_id}));
@@ -3176,7 +3320,7 @@ classdef Segment_Functions
                     xyz = S.Segment.Pointdata(index(k)).PointXYZ;
                     ID_counts(k) = sum(x_id(k) == IDs);
                     Parcentage(k) = ID_counts(k)/ size(xyz,1);
-                end                
+                end
                 obj.Segment.Pointdata(n).Tracking.IDs = x_id;
                 obj.Segment.Pointdata(n).Tracking.ID_counts = ID_counts;
                 obj.Segment.Pointdata(n).Tracking.ObjectParcentage = Parcentage;
@@ -3186,20 +3330,20 @@ classdef Segment_Functions
                 err
                 keyboard
             end
-            TrackingData = obj.Segment;            
+            TrackingData = obj.Segment;
         end
-        function TrackingData = TrackingDays_FindNearestIDs_parfor(obj,SEG1,SEG2)            
+        function TrackingData = TrackingDays_FindNearestIDs_parfor(obj,SEG1,SEG2)
             tic;
             catID = cat(1,SEG1.Pointdata.ID);
             SEG1.Pointdata = SEG1.Pointdata(catID>0);
             obj.Segment = SEG1;
             DistanceLim = obj.Tracking_Distance_Limit;
-            
+
             S = Segment_Functions;
             catID = cat(1,SEG2.Pointdata.ID);
             SEG2.Pointdata = SEG2.Pointdata(catID>0);
             S.Segment = SEG2;
-            
+
             %% xyz1(base) to xyz2(object)
             Pdata = obj.Segment.Pointdata;
             BaseReso = obj.Segment.ResolutionXYZ;
@@ -3208,7 +3352,7 @@ classdef Segment_Functions
             XYZ = (objXYZ -1 ) .* S.Segment.ResolutionXYZ;
             Pdata(1).Tracking.IDs = [];
             Pdata(1).Tracking.ID_counts = [];
-            Pdata(1).Tracking.ObjectParcentage = [];            
+            Pdata(1).Tracking.ObjectParcentage = [];
             parfor n = 1:Num
                 disp(num2str(n/Num * 100,'%.1f'))
                 xyz1 = Pdata(n).PointXYZ;
@@ -3226,7 +3370,7 @@ classdef Segment_Functions
                     end
                 end
                 IDs(isnan(IDs)) = [];
-                IDs = sort(IDs);                
+                IDs = sort(IDs);
                 p = diff([IDs; inf])>0;
                 x_id = IDs(p);
                 index = cell2mat(S.ID2Index({x_id}));
@@ -3240,9 +3384,9 @@ classdef Segment_Functions
                     Parcentage(k) = ID_counts(k)/ size(xyz,1);
                     xyz = ( xyz -1).* S.Segment.ResolutionXYZ;
                     [val,D] = S.Evaluate_2Line_Euclidean(xyz1,xyz);
-                    EuclidianSD(k) = val; 
-                    EuclidianAve(k) = D; 
-                end                
+                    EuclidianSD(k) = val;
+                    EuclidianAve(k) = D;
+                end
                 Pdata(n).Tracking.IDs = x_id;
                 Pdata(n).Tracking.ID_counts = ID_counts;
                 Pdata(n).Tracking.ObjectParcentage = Parcentage;
@@ -3253,7 +3397,7 @@ classdef Segment_Functions
             TrackingData = obj.Segment;
             toc
         end
-        
+
         function X = OutputTrackingData_XLS_Days(obj,TrackingData)
             % Days
             % ID, Class, Zum(base_D00), Dia.(Ave.), SD  ,Length, Tracking-ID(D21)
@@ -3273,13 +3417,13 @@ classdef Segment_Functions
                     X{n,8} =  num2str(Pdata(n).TrackingIDs(:)');
                 else
                     X{n,8} =  '--';
-                end                
+                end
             end
             DateData = cell(1,length(Names));
             DateData{1,1} = 'Output : ';
-            DateData{1,2} = date;            
+            DateData{1,2} = date;
             X = cat(1,Names,X,DateData);
-            
+
         end
         function X = OutputTrackingData_XLS_Tracking(obj,TD_base,TD_obj,Days)
             Names = {'BaseID','D00',Days};
@@ -3297,21 +3441,21 @@ classdef Segment_Functions
             end
             DateData = cell(1,length(Names));
             DateData{1,1} = 'Output : ';
-            DateData{1,2} = date;            
+            DateData{1,2} = date;
             X = cat(1,Names,X,DateData);
         end
-                
+
         function TrackingData = TrackingDays_xcorr_DistanceLim(obj,SEG1,SEG2)
             tic
             Output = SEG1;
-            DistLim = 100; %% Unit [Numbers], 
-            
+            DistLim = 100; %% Unit [Numbers],
+
             Pdata1 = SEG1.Pointdata;
             S2 = Segment_Functions;
             S2.Segment = SEG2;
-            for n1 = 1:length(Pdata1)                
+            for n1 = 1:length(Pdata1)
                 xyz1 = Pdata1(n1).PointXYZ;
-                [ID,len] = obj.Check_Distance(xyz1,SEG1.ResolutionXYZ,SEG2,DistLim);                
+                [ID,len] = obj.Check_Distance(xyz1,SEG1.ResolutionXYZ,SEG2,DistLim);
                 Index = S2.ID2Index({ID});
                 Index = cell2mat(Index);
                 Pdata2 = SEG2.Pointdata(Index);
@@ -3335,14 +3479,14 @@ classdef Segment_Functions
             TrackingData = Pdata1;
             toc
          end
-        
+
         function [ID,len,Index] = Check_Distance(obj,xyz,Reso,SEG_Obj,DistLim)
              xyz = (xyz - 1) .*Reso;
              Pdata = SEG_Obj.Pointdata;
              Pdata = Pdata(cat(1,Pdata.ID)>0);
              Reso_obj = SEG_Obj.ResolutionXYZ;
              ID = cat(1,Pdata.ID);
-             len = zeros(size(ID));             
+             len = zeros(size(ID));
              for n = 1:length(Pdata)
                  xyz_obj = Pdata(n).PointXYZ;
                  xyz_obj = (xyz_obj-1).* Reso_obj;
@@ -3355,11 +3499,11 @@ classdef Segment_Functions
              len = len(Index);
              ID = ID(Index);
          end
-                      
+
         function TrackingData = TrackingDays_xcorr_proto(obj,SEG1,SEG2)
             tic
             Pdata1 = SEG1.Pointdata;
-            Pdata2 = SEG2.Pointdata;            
+            Pdata2 = SEG2.Pointdata;
             Thomatrix = nan(length(Pdata1),length(Pdata2),3);
             for n1 = 1:length(Pdata1)
                 xyz1 = Pdata1(n1).PointXYZ;
@@ -3375,8 +3519,8 @@ classdef Segment_Functions
             TS_WaiteProgress(1)
             TrackingData = Thomatrix;
             toc
-            
-            
+
+
         end
         function [tho,LagDiff] = trackingFcn_xcorr(~,l1,l2)
 %              [r,lag] = xcorr(l1,l2);
@@ -3385,11 +3529,11 @@ classdef Segment_Functions
 %              lenTF = length(l1) >= length(l2);
 %              try
 %              if LagDiff == 1 || LagDiff ==0
-%                  if lenTF 
+%                  if lenTF
 %                      l1 = l1(1:length(l2));
 %                  else
 %                      l2 = l1(1:length(l1));
-%                  end                 
+%                  end
 %              elseif LagDiff < 0
 %                  if lenTF
 %     %                  l1 = l1(-LagDiff+1:end);
@@ -3404,16 +3548,16 @@ classdef Segment_Functions
 %                      l1 = l1(length(l1)-length(l2)-LagDiff+2:length(l1)-LagDiff+1);
 %                  else
 %     %                  l2 = l2(-LagDiff+1:end);
-%                      l2 = l2(length(l2)-length(l1)-LagDiff+2:length(l2)-LagDiff+1);                     
+%                      l2 = l2(length(l2)-length(l1)-LagDiff+2:length(l2)-LagDiff+1);
 %                  end
 %              end
-%              
-%                  
+%
+%
 %              catch err
 %                  keyboard
 %              end
                  %%% too match missing Result.....
-                 
+
                  %% New version,
              if size(l1,1) >= size(l2,1)
                  L1 = l1;
@@ -3426,7 +3570,7 @@ classdef Segment_Functions
 %              Tho1 = zeros(size(L1,1)-size(L2,1)+1,3);
 %              Tho2 = zeros(size(L1,1)-size(L2,1)+1,3);
 %              lenver = size(L2,1);
-% %              Lag = Tho;            
+% %              Lag = Tho;
 %              for n = 1:size(Tho1,1)
 %                  Tho1(n,1) = corr(L1(n:lenver+n-1,1),L2(:,1));
 %                  Tho1(n,2) = corr(L1(n:lenver+n-1,2),L2(:,2));
@@ -3456,15 +3600,15 @@ classdef Segment_Functions
                  LagDiff = Lag2;
                  LagDiff = LagDiff(1);
                  tho = Tho2(LagDiff);
-             end            
+             end
 %              [~,LagDiff] = max(abs(Tho));
 %              LagDiff = LagDiff(1);
 %              tho = Tho(LagDiff);
         end
-        
+
         function tho = trackingFcn_ParallelismSTD(~,l1,l2)
-             
-                 %% New version,             
+
+                 %% New version,
              if size(l1,1) >= size(l2,1)
                  L1 = l1;
                  L2 = l2;
@@ -3485,15 +3629,15 @@ classdef Segment_Functions
              [~,ind1] = min(THO1);
              [~,ind2] = min(THO2);
              Tho1 = Tho1(ind1(1),:);
-             Tho2 = Tho2(ind2(1),:);             
+             Tho2 = Tho2(ind2(1),:);
              %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
              if sum(Tho1(:))>= sum(Tho2(:))
                  tho = Tho1;
              else
                  tho = Tho2;
              end
-             
-                 
+
+
         end
         function NewSEG = RotMoveStretch_SEG(obj,SEG,RotMovStretchData)
             % NewSEG = RotMoveStretch_SEG(obj,SEG,RotMovStretchData)
@@ -3501,7 +3645,7 @@ classdef Segment_Functions
             Pdata = SEG.Pointdata;
             catID = cat(1,Pdata.ID);
             Pdata = Pdata(catID>0);
-            Reso = SEG.ResolutionXYZ;            
+            Reso = SEG.ResolutionXYZ;
             Center = (SEG.Size-1) .* SEG.ResolutionXYZ /2;
             for n = 1:length(Pdata)
                 xyz = Pdata(n).PointXYZ;
@@ -3512,9 +3656,9 @@ classdef Segment_Functions
             end
             NewSEG = SEG;
             NewSEG.Pointdata = Pdata;
-            
-        end       
-               
+
+        end
+
         function XYZ = xyz2RotMoveStretch(obj,xyz,RotMovStretchData,OriginalCenter)
             %% input must be real lenght unit
             % XYZ = xyz2RotMoveStretch(xyz,RotMovStretchData,OriginalCenter)
@@ -3523,12 +3667,12 @@ classdef Segment_Functions
             Ry = obj.RotY(RotMovStretchData.Rotate(2));
             Rz = obj.RotZ(RotMovStretchData.Rotate(3));
             zdata = xyz(:,3);
-            xyz = xyz - OriginalCenter;            
+            xyz = xyz - OriginalCenter;
             xyz = xyz';
             xyz = Rz*(Ry*(Rx*xyz));
             xyz = xyz';
             XYZ = xyz + OriginalCenter;
-            XYZ = XYZ + RotMovStretchData.Move;            
+            XYZ = XYZ + RotMovStretchData.Move;
             newZ = interp1(RotMovStretchData.Stretch_lx,...
                 RotMovStretchData.Stretch_ly,...
                 XYZ(:,3),...  %% old is zdata
@@ -3543,38 +3687,38 @@ classdef Segment_Functions
             Ry = obj.RotY(-RotMovStretchData.Rotate(2));
             Rz = obj.RotZ(-RotMovStretchData.Rotate(3));
             zdata = xyz(:,3);
-            
-            xyz = xyz - OriginalCenter;            
+
+            xyz = xyz - OriginalCenter;
             xyz = xyz';
             xyz = Rz*(Ry*(Rx*xyz));
             xyz = xyz';
             XYZ = xyz + OriginalCenter;
-            
-            XYZ = XYZ - RotMovStretchData.Move;            
+
+            XYZ = XYZ - RotMovStretchData.Move;
             newZ = interp1(RotMovStretchData.Stretch_ly,...
                 RotMovStretchData.Stretch_lx,...
                 XYZ(:,3),...  %% old is zdata
                 RotMovStretchData.InterpType);
             XYZ(:,3) = newZ;
         end
-        
-       
-        
+
+
+
         %% inpterpolation
-        function [Xo,Yo,Zo] = GetNormMesh_Reso(obj,Center,NorVec,outsiz,NewReso)  
-            % [Xo,Yo,Zo] = GetMesh_Reso(~,Center,NorVec,outsiz,NewReso) 
+        function [Xo,Yo,Zo] = GetNormMesh_Reso(obj,Center,NorVec,outsiz,NewReso)
+            % [Xo,Yo,Zo] = GetMesh_Reso(~,Center,NorVec,outsiz,NewReso)
             %
             % Center, [Xc,Yc,Zc] Center Position as real length [unit um]
             % NorVec, Norm Vecter(s), size(NorVec,1) == size(Center,1)
-            %     see also 
-            %         xyz2Vector 
+            %     see also
+            %         xyz2Vector
             %         SphereFit_LeastSquares
             %         CircleFit_Taubin
             % outsiz , scalar, unit pix.(==vox.)
             % NewReso, output Resolution, scalar,
             %
             % Create Oct. 2nd 2019 , Sugashi
-            
+
             if and(~isscalar(NewReso),~isscalar(outsiz))
                 error('Input New Resolution and Outsiz is not Scalor')
             end
@@ -3583,11 +3727,11 @@ classdef Segment_Functions
             BaseVector = [1 0 0];
             T = NorVec;
             T(:,3) = 0;
-            
-            Theta = obj.UnitVector2Theta(T,repmat(BaseVector,[size(T,1), 1]));                
-%             
-%             
-% 
+
+            Theta = obj.UnitVector2Theta(T,repmat(BaseVector,[size(T,1), 1]));
+%
+%
+%
 %             Xdata = ( 0:outsiz-1 ) *NewReso;
 %             Xdata = Xdata - (max(Xdata)/2);
 %             Ydata = ( 0:outsiz-1 ) *NewReso;
@@ -3602,8 +3746,8 @@ classdef Segment_Functions
             Yo = Xo;
             Zo = Xo;
             for n = 1:size(NorVec,1)
-                N = NorVec(n,:);                
-                VertTheta = obj.UnitVector2Theta(N,BaseVector); 
+                N = NorVec(n,:);
+                VertTheta = obj.UnitVector2Theta(N,BaseVector);
                 [~,~,Posi] = obj.GetThetaIndex(Center(n,1:2),Theta(n),abs(outsiz*cos(VertTheta)));
                 Cx = linspace(Posi(1,1),Posi(2,1),outsiz);
                 Cy = linspace(Posi(1,2),Posi(2,2),outsiz);
@@ -3642,10 +3786,10 @@ classdef Segment_Functions
 %                 end
                 Xo(:,:,n) = X;
                 Yo(:,:,n) = Y;
-                Zo(:,:,n) = Z;                
-            end          
+                Zo(:,:,n) = Z;
+            end
         end
-        
+
         function V = InterpNormLine_proto(obj,MSEG,ID,Image,Reso,varargin)
             %V = InterpNormLine_proto(obj,MSEG,ID,Image,Reso,varargin)
             % varargin Len , default 70 um,
@@ -3654,11 +3798,11 @@ classdef Segment_Functions
             elseif nargin > 5
                 Len = varargin{1};
             end
-            
+
             if ~isscalar(ID)
                 error('Input ID is NOT Scalar')
-            end            
-            
+            end
+
             LenPix = Len ./Reso(1);
             SEGReso = MSEG.ResolutionXYZ;
             xyz = MSEG.Pointdata(ID).PointXYZ;
@@ -3684,9 +3828,9 @@ classdef Segment_Functions
                 V(:,n) = l(:);
                 Xqp(:,n) = xp;
                 Yqp(:,n) = yp;
-            end            
+            end
         end
-        
+
         function V = InterpNormLine_VideoInput(obj,MSEG,ID,Image,Reso,varargin)
             %V = InterpNormLine_proto(obj,MSEG,ID,Image,Reso,varargin)
             % varargin Len , default 70 um,
@@ -3695,16 +3839,16 @@ classdef Segment_Functions
             elseif nargin > 5
                 Len = varargin{1};
             end
-            
+
             if ~isscalar(ID)
                 error('Input ID is NOT Scalar')
-            end            
-            
+            end
+
             Image = squeeze(Image);
             if ndims(Image)~=3
                 error('Input Image must be less than 3 dimmension.')
             end
-            
+
             LenPix = Len ./Reso(1);
             SEGReso = MSEG.ResolutionXYZ;
             xyz = MSEG.Pointdata(ID).PointXYZ;
@@ -3716,13 +3860,13 @@ classdef Segment_Functions
             Vlen = length(obj.GetThetaIndex([0 0],0,LenPix));
             Xqp = nan(Vlen,size(xyz,1));
             Yqp = Xqp;
-            for n = 1:size(xyz,1)                
+            for n = 1:size(xyz,1)
                 [xp,yp] = obj.GetThetaIndex(ImSizXYZ(n,1:2),...
-                    NTheta(n),LenPix);                                
+                    NTheta(n),LenPix);
                 Xqp(:,n) = xp;
                 Yqp(:,n) = yp;
             end
-            
+
             Zp = zeros([size(Xqp), size(Image,3)]);
             for n = 1:size(Image,3)
                 Zp(:,:,n) = n;
@@ -3731,7 +3875,7 @@ classdef Segment_Functions
             Yqp = repmat(Yqp,[1 1 size(Image,3)]);
             V = interp3(single(Image),Xqp,Yqp,Zp);
         end
-        
+
         function SEG = HS_add_Imagedata2SEG(~,Image,Reso,SEG,fname)
             % NewSEG = obj.HS_add_Imagedata2SEG(~,Image,Reso,SEG,field-Name)
             % field_Name must be ...
@@ -3749,10 +3893,10 @@ classdef Segment_Functions
             if length(SegReso)==2
                 SegReso(3) = 1;
             end
-            
+
             for n = 1:length(Pdata)
                 if Pdata(n).ID<=0
-                    continue                    
+                    continue
                 end
                 xyz = Pdata(n).PointXYZ;
                 xyzq = (xyz-1).*SegReso./Reso + 1;
@@ -3762,13 +3906,13 @@ classdef Segment_Functions
                 Matrix = nan(size(xyz,1),size(Image,4));
                 for t = 1:size(Image,4)
                     im = double(Image(:,:,:,t));
-                    if size(im,3)>1                    
+                    if size(im,3)>1
                         p = interp3(single(im),x,y,z);
                     else
                         p = interp2(single(im),x,y);
                     end
-                    Matrix(:,t) =p(:); 
-                end                
+                    Matrix(:,t) =p(:);
+                end
                 switch lower(fname)
                     case 'staytime'
                         Pdata(n).StayTimeSkel = Matrix;
@@ -3776,10 +3920,10 @@ classdef Segment_Functions
                         warrning('Please contcat Developper, Leo Sugashi Takuma.')
                         eval(['Pdata(n).' fname '=Matrix;']);
                 end
-            end 
+            end
             SEG.Pointdata = Pdata;
         end
-        
+
         function S_test = xyzSmooth_Bspline(obj,yxz,varargin)
             % S_test = xyzSmooth_Bspline(obj,yxz,varargin)
             % OutPutSizTime = 2; %% default
@@ -3799,7 +3943,7 @@ classdef Segment_Functions
             if nargin >2
                 OutPutSizTime = varargin{1};
             end
-            DIM = obj.BsplineDim;            
+            DIM = obj.BsplineDim;
             %% main
             FirstDoneTF = false;
             try
@@ -3811,10 +3955,10 @@ classdef Segment_Functions
             catch
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 if FirstDoneTF
-                    [S_test] = obj.BsplineFunc(S_test,0,siz*OutPutSizTime,[],'Bezier');                    
-                else                    
+                    [S_test] = obj.BsplineFunc(S_test,0,siz*OutPutSizTime,[],'Bezier');
+                else
                     [S_test] = obj.BsplineFunc(yxz,0,siz*FirstDownSizRatio,[],'Bezier');
-                    [S_test] = obj.BsplineFunc(S_test,0,siz*OutPutSizTime,[],'Bezier');                   
+                    [S_test] = obj.BsplineFunc(S_test,0,siz*OutPutSizTime,[],'Bezier');
                 end
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             end
@@ -3832,16 +3976,16 @@ classdef Segment_Functions
                 S_test = yxz;
                 return
             end
-            
+
             %% initialize
             FirstDownSizRatio = obj.BsplineFistDownSizeRatio;
-            DIM = obj.BsplineDim;            
+            DIM = obj.BsplineDim;
             %% main
             FirstDoneTF = false;
             try
                [S_test] = obj.BsplineFunc(yxz,DIM,siz*FirstDownSizRatio);
                plen = obj.xyz2plen(S_test,inReso);
-               OutPutSiz = ceil(sum(plen)/outReso);                
+               OutPutSiz = ceil(sum(plen)/outReso);
                FirstDoneTF = true;
                [S_test] = obj.BsplineFunc(S_test,DIM,OutPutSiz);
                S_test(1,:) = yxz(1,:);
@@ -3849,17 +3993,17 @@ classdef Segment_Functions
             catch
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 if FirstDoneTF
-                    [S_test] = obj.BsplineFunc(S_test,0,OutPutSiz,[],'Bezier');                    
-                else                    
+                    [S_test] = obj.BsplineFunc(S_test,0,OutPutSiz,[],'Bezier');
+                else
                     [S_test] = obj.BsplineFunc(yxz,0,siz*FirstDownSizRatio,[],'Bezier');
                     plen = obj.xyz2plen(S_test,inReso);
                     OutPutSiz = ceil(sum(plen)/outReso);
-                    [S_test] = obj.BsplineFunc(S_test,0,OutPutSiz,[],'Bezier');                   
+                    [S_test] = obj.BsplineFunc(S_test,0,OutPutSiz,[],'Bezier');
                 end
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             end
         end
-        
+
         %% Image rotation Move, Stretch
         function [J,Xq,Yq,Zq] = Image2RotMovStretch(obj,objImage,objReso,RotMovStretchData,varargin)
             %[J,Xq,Yq,Zq] = Image2RotMovStretch(obj,objImage,objReso,RotMovStretchData)
@@ -3874,7 +4018,7 @@ classdef Segment_Functions
             %
             % Output
             % J = rotated and interpolated image
-            
+
             [X,Y,Z] = meshgrid(...
                 (0:size(objImage,2)-1)*objReso(1),...
                 (0:size(objImage,1)-1)*objReso(2),...
@@ -3885,7 +4029,7 @@ classdef Segment_Functions
                 cat(2,X(:),Y(:),Z(:)),RotMovStretchData,Center);
             Xq = reshape(Rxyz(:,1),siz);
             Yq = reshape(Rxyz(:,2),siz);
-            Zq = reshape(Rxyz(:,3),siz);            
+            Zq = reshape(Rxyz(:,3),siz);
             J = interp3(X,Y,Z,single(objImage),Xq,Yq,Zq);
         end
         function J = Image2RotMovStretch_byScatteredInterpolant(obj,objImage,objReso,outSize,outReso,RotMovStretchData)
@@ -3911,11 +4055,11 @@ classdef Segment_Functions
             [Xq,Yq,Zq] = meshgrid(x,y,z);
             keyboard
             F = scatteredInterpolant(X(:),Y(:),Z(:),double(objImage(:)));
-            J = F(Xq,Yq,Zq);  
+            J = F(Xq,Yq,Zq);
         end
-        
-        
-        
+
+
+
         %% others
         function PieceLength = xyz2plen(~,xyz,Reso)
             % xyz position data caluculate to piece length
@@ -3926,15 +4070,15 @@ classdef Segment_Functions
 %            Out of memory. The likely cause is an infinite recursion within the program.
             PieceLength =  (sum(diff(xyz,1,1).^2 ,2)).^(1/2);
             PieceLength = cat(1,0,PieceLength);
-        end       
-        function [xp,yp,Posi] = GetThetaIndex(~,Center,theta,Length,varargin) 
-            % [xp,yp,Posi] = GetThetaIndex(obj,Center,theta,Length,{Reso}) 
+        end
+        function [xp,yp,Posi] = GetThetaIndex(~,Center,theta,Length,varargin)
+            % [xp,yp,Posi] = GetThetaIndex(obj,Center,theta,Length,{Reso})
             % from TS_GetLinePro2mesh...
             % Zero is V(x,y,z) = [1 0 0];
             % [xp,yp] = S.GetThetaIndex([0 0],0,10)
             % xp =
             % -5  -4  -3  -2  -1  0   1   2   3   4   5
-            % yp = 
+            % yp =
             % 0   0   0   0   0   0   0  0  0   0   0
             %% initialize
             if nargin==6
@@ -3954,19 +4098,19 @@ classdef Segment_Functions
             y1 = fy1(Center(2),theta,Length);
             y2 = fy2(Center(2),theta,Length);
             Posi = [x1 y1; x2 y2];
-            
+
             RadNum =  ceil(Length/2);
             pnum = RadNum * 2 + 1;
 %             keyboard
             if (x2-x1) == 0
                 xp = ones(1,pnum) * x1;
-            else                
+            else
                 xp1 = flip(linspace(Center(1),x1,RadNum+1) ,2);
-                xp2 = linspace(Center(1)+abs(diff(xp1(1:2))),x2,RadNum) ;                
+                xp2 = linspace(Center(1)+abs(diff(xp1(1:2))),x2,RadNum) ;
                 xp = cat(2,xp1,xp2);
             end
 
-            if (y2-y1) == 0            
+            if (y2-y1) == 0
                 yp = ones(1,pnum) * y1;
             else
                 yp1 = flip(linspace(Center(2),y1,RadNum+1) ,2);
@@ -3977,7 +4121,7 @@ classdef Segment_Functions
         function Val = Evaluate_2VecterParallelism(obj,V1,V2)
             % Val = Evaluate_2VecterParallelism(V1,V2)
             %
-            % Compare with V1 and V2 
+            % Compare with V1 and V2
             % V1,V2 = [u,v,w]; (will be vectorized to unit vector )
             % output :
             %   0 <= Val <= 1
@@ -4048,7 +4192,7 @@ classdef Segment_Functions
                 basexyz = xyz1;
                 objxyz = xyz2;
             end
-                        
+
             for n = 1:lenmax-len+1
                 P2Plen = basexyz - objxyz(n:n+len-1,:);
                 P2Plen = sqrt(sum(P2Plen.^2,2));
@@ -4057,7 +4201,7 @@ classdef Segment_Functions
             end
             val1 = min(V);
             dist1 = min(A);
-            
+
             objxyz = flip(objxyz,1);
             for n = 1:lenmax-len+1
                 P2Plen = basexyz - objxyz(n:n+len-1,:);
@@ -4078,22 +4222,3 @@ classdef Segment_Functions
         end
     end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
