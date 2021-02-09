@@ -39,18 +39,20 @@ end
 %% main mex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 try
     if ispc
-        SEG = TS_AutoSegment_v2019Charly(bw,NewReso,AddBP,cutlen);
+        SEG = TS_AutoSegment_v2021a(bw,NewReso,AddBP,cutlen);
     else
         if ismac
             SEG = AutoSegment_OSX_mex(bw,NewReso,AddBP,cutlen);
         else
             SEG = AutoSegment_mex(bw,NewReso,AddBP,cutlen);%%
         end
+        Sf = Segment_Functions;
+        SEG = Sf.set_Segment(SEG);
     end
 catch err
     warning(err.message)
     warning('Please report to Sugashi.')
-    SEG = TS_AutoSegment_v2019Charly(bw,NewReso,AddBP,cutlen);
+    SEG = TS_AutoSegment_v2021a(bw,NewReso,AddBP,cutlen);
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% delete too long

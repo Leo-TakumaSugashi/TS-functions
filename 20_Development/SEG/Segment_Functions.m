@@ -43,7 +43,7 @@ classdef Segment_Functions
     % in function of Connect and Separate. These are the factors that cause
     % errors in the subsequent processing (mainly visualization).
     %
-    %
+    
     % % version memo
     % Dec. 30th, 2020 Sugashi
     %  Edited set_Segment for new structure(NewXYZrot,nor,ell)
@@ -55,6 +55,8 @@ classdef Segment_Functions
     %  add Euclidian distance from AorV
     % Feb. 7th, 2021 Sugashi
     %  Organize, add help, examples, etc.
+    %
+    %  Suggestion_ReConnection,Find_NearSegment_xyz
 
     properties
 
@@ -2560,6 +2562,121 @@ classdef Segment_Functions
             Ztf = XYZ(:,3,:) == xyz(3);
             index = and( and( Xtf, Ytf ), Ztf);
         end
+        function [IDs,Dist,SeparateXYZ] = Find_NearSegment_xyz(obj,xyz,Minimum)
+            % [IDs,Dist,SeparateIndex] = self.Find_NearSegment_xyz(xyz,Minimum)
+            %
+            % Input : 
+            %  xyz   : [x,y,z] 1x3 vector
+            %  Minimum : Minimum Distance for search.
+            %
+            % Output : 
+            %   IDs    : IDs [1xn]
+            %   Dist   : Distance from xyz, [1xn]
+            %   SeparateIndex : if Nearest index is not edge of Segment,
+            %    indicates separate index of PointXYZ in IDs. if edge, NaN.
+            
+            SEG = obj.Segment;
+            selfID = obj.FindID_xyz(xyz);
+            selfIndex = obj.ID2Index(selfID);
+            SEG.Pointdata(selfIndex).ID = abs(SEG.Pointdata(selfIndex).ID)*(-1);
+            obj.Segment = SEG;
+            
+            XYZ = [];
+            catID = [];
+            for n = 1:length(SEG.Pointdata)
+                if SEG.Pointdata(n).ID<0
+                    continue
+                end
+                XYZ = cat(1,XYZ,SEG.Pointdata(n).PointXYZ);
+                catID = cat(1,catID,...
+                    repmat(SEG.Pointdata(n).ID,[size(SEG.Pointdata(n).PointXYZ,1),1]));
+            end
+            
+            len = obj.GetEachLength(xyz,XYZ,SEG.ResolutionXYZ);
+%             keyboard
+            ind = len <= Minimum;
+            
+            len(~ind) = [];
+            IDs = catID(ind);
+            Dist = len;
+            SeparateXYZ = XYZ(ind,:);
+        end
+        function [XYZ,IDs] = Get_EndPointXYZ(obj)
+            %  [XYZ,IDs] = self.Get_EndPointXYZ()
+            Pdata = obj.Segment.Pointdata;
+            XYZ = [];
+            IDs = [];
+            for n = 1:length(Pdata)
+                if Pdata(n).ID < 0
+                    continue
+                end
+                if strcmpi((Pdata(n).Type),'End to End')
+                    XYZ = cat(1,XYZ,Pdata(n).PointXYZ([1 end],:));
+                    IDs = cat(1,IDs,repmat(Pdata(n).ID,[2 1]));
+                elseif strcmpi((Pdata(n).Type),'End to Branch')
+                    IDs = cat(1,IDs,Pdata(n).ID);
+                    xyz = Pdata(n).PointXYZ(1,:); % first point
+                    Branch = Pdata(n).Branch;
+                    TFx = xyz(1) == Branch(:,1);
+                    TFy = xyz(2) == Branch(:,2);
+                    TFz = xyz(3) == Branch(:,3);
+                    TF = max(and(and(TFx,TFy),TFz));
+                    if TF
+                        XYZ = cat(1,XYZ,xyz);
+                        continue
+                    end
+                    xyz = Pdata(n).PointXYZ(end,:);% last Point
+                    TFx = xyz(1) == Branch(:,1);
+                    TFy = xyz(2) == Branch(:,2);
+                    TFz = xyz(3) == Branch(:,3);
+                    TF = max(and(and(TFx,TFy),TFz));
+                    if TF
+                        XYZ = cat(1,XYZ,xyz);
+                        continue
+                    end
+                end
+                
+            end
+        end
+        function data = Suggestion_ReConnection(obj,varargin)
+            % data = self.SReConnection(varargin)
+            % if nargin ==2 
+            %    Minimum = varargin{1};
+            % else
+            %    Reso = obj.Segment.ResolutionXYZ;
+            %    Minimum = sqrt(sum(Reso.^2));
+            % end
+            
+            if nargin ==2 
+                Minimum = varargin{1};
+            else
+                Reso = obj.Segment.ResolutionXYZ;
+                Minimum = sqrt(sum(Reso.^2))*3.5; %%% experimental value
+                Minimum = max(Reso)*sqrt(3)*1.5;%%% experimental value
+            end
+            
+            [XYZ,selfIDs] = obj.Get_EndPointXYZ();
+            
+            data = struct('Target_XYZ',[],'Target_ID',[],...
+                'Found_IDs',[],'Found_Dist',[],...
+                'Found_SeparateIndex',[]);
+            c = 1;
+            for n = 1:size(XYZ,1)
+                [IDs,Dist,SeparateIndex] = ...
+                    obj.Find_NearSegment_xyz(XYZ(n,:),Minimum);
+                if isempty(IDs)
+                    continue
+                end
+                data(c).Target_XYZ = XYZ(n,:);
+                data(c).Target_ID = selfIDs(n);
+                data(c).Found_IDs = IDs;
+                data(c).Found_Dist = Dist;
+                data(c).Found_SeparateXYZ = SeparateIndex;
+                c =c +1;
+            end
+        end
+        
+        
         function [Newxyz,CutInd,Label] = CutOverlappingPoint(~,xyz)
             XYZ = xyz;
             Label = zeros(size(xyz,1),1);
@@ -4219,6 +4336,21 @@ classdef Segment_Functions
             V = false(obj.Segment.Size);
             Ind = eval(['obj.Segment.' Type ';']);
             V(Ind) = true;
+        end
+        function [SEG,Image,Reso] = make_sample(obj)
+            % [SEG,Image,Reso] = make_sample()
+            % Create Sample Segment data.
+            Image = rand(16,16,8,'single');
+            Image(Image<0.6) = 0;
+            Image = uint8((Image - 0.6)/0.4*255);
+            Image = uint8(imresize3(Image,[64,64,64]));
+            Reso = [0.8 0.8 1.6];
+            [rImage,NewReso] = TS_EqualReso3d_2017(Image,Reso,1);
+            bw = rImage>100;
+            skel = bwskel(bw);
+            skel = TS_bwmorph3d(skel,'thin');
+            SEG = TS_AutoSegment_v2021a(skel,NewReso,[],0);
+            SEG = obj.set_Segment(SEG,'f');
         end
     end
 end
