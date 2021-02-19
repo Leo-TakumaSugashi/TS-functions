@@ -42,7 +42,8 @@ classdef Segment_Functions
     % would be change the structure against the intention of the developer
     % in function of Connect and Separate. These are the factors that cause
     % errors in the subsequent processing (mainly visualization).
-    %
+    %  Scalar data connections other than ID and Length are only arranged vertically.
+    %  It is recommended to ReDo the calculation related to space after connection.
     
     % % version memo
     % Dec. 30th, 2020 Sugashi
@@ -57,6 +58,11 @@ classdef Segment_Functions
     %  Organize, add help, examples, etc.
     %
     %  Suggestion_ReConnection,Find_NearSegment_xyz
+    %
+    %  Feb. 19th, 2021 Sugashi
+    % Solving connection problems. 
+    % But, Scalar data connections other than ID and Length are 
+    % only arranged vertically.
 
     properties
 
@@ -65,6 +71,13 @@ classdef Segment_Functions
         MesureLine = @TS_Measure % function TS_Measure
 
         Chase_Limit(1,1) = 10 % Using in self.Chase(). Limit of ID, but having bags.
+        
+        
+        Pointdata_Scalars = {'ID','Length',...
+            'GenerationsNum_Arteries',...
+            'GenerationsNum_Veins',...
+            'GenerationsNum_ArterioVenous'}% Definition Scalar data in Pointdata.
+        Pointdata_UniqueNumels = {'Branch','OriginalPointXYZ'}% Definition Unequ Numels data in Pointdata.
 
         Class_Artery = {'Art.','SA','PA'} % Definition class names as artery.
         Class_Vein = {'Vein','SV','PV'} % Definition class names as vein.
@@ -86,8 +99,8 @@ classdef Segment_Functions
         EllipticLengthLim = 5; %% Reference value to be approximated by an ellipse judged by the segment length. just for 2D
         EllipticFaiLim = pi/4; % Reference value to be approximated by an ellipse judged by the Fai.[radian], for 3D
 
-        LastDate = '2021/6th/Feb., by Leo Sugashi Takuma'
-        Version = '2.1.01' %% Current version is 2.1.01, under edit help.
+        LastDate = '2021/19th/Feb., by Leo Sugashi Takuma'
+        Version = '2.1.10' %% Current version is 2.1.10, under edit help.
         UserData
     end
     methods
@@ -599,21 +612,18 @@ classdef Segment_Functions
             NewPdata = SEG.Pointdata(Startindex);
             sort_table = true(1,length(Ind));
             sort_table(Startindex) = false;
-            xyz = Pdata(Startindex).PointXYZ;
-
-            Branch = Pdata(Startindex).Branch;
-            Signal = Pdata(Startindex).Signal;
-            Noise = Pdata(Startindex).Noise;
-            Diameter = Pdata(Startindex).Diameter;
-            Theta = Pdata(Startindex).Theta;
-            NewXYZ = Pdata(Startindex).NewXYZ;
+            
+            %% Pointdata Fields check
+            DefaultPdata = Pdata(1);
+            PFields = fieldnames(NewPdata);
+            
             % check class
             Class_check = cell(1,length(Ind));
             Class_check{1} = Pdata(Startindex).Class;
             BeforeIndex = Startindex;
             for n = 1:length(Ind)-1
                 [NearIndex,TF_flip_Parent,TF_flip_Foward,ErrorString] ...
-                = obj.FindNearestID(xyz,Pdata,sort_table,SEG.ResolutionXYZ);
+                = obj.FindNearestID(NewPdata.PointXYZ,Pdata,sort_table,SEG.ResolutionXYZ);
                 NearIndex = NearIndex(1);
                 NextPdata = Pdata(NearIndex);
                 sort_table(NearIndex) = false;
@@ -628,50 +638,108 @@ classdef Segment_Functions
                     end
                 end
                 BeforeIndex = NearIndex;
-                xyz_Add = NextPdata.PointXYZ;
-                Branch_Add = NextPdata.Branch;
-                Signal_Add = NextPdata.Signal;
-                Noise_Add = NextPdata.Noise;
-                Diameter_Add = NextPdata.Diameter;
-                Theta_Add = NextPdata.Theta;
-                NewXYZ_Add = NextPdata.NewXYZ;
+                
+                for nf = 1:length(PFields)
+                    Xn = NextPdata.(PFields{nf});
+                    if or(isnumeric(Xn),islogical(Xn))
+                        if TF_flip_Parent
+                            Xp = flip(NewPdata.(PFields{nf}),1);
+                        else
+                            Xp = NewPdata.(PFields{nf});
+                        end
+                        if TF_flip_Foward
+                            Xn = flip(Xn,1);
+                        end
+                        NewPdata.(PFields{nf}) = cat(1,Xp,Xn);
+                    elseif ischar(Xn)
+                        NewPdata.(PFields{nf}) = cat(2,...
+                            NewPdata.(PFields{nf}),'/',Xn);
+                    else
+                        keyboard
+                        error('Input Pointdata has no support.')
+                    end
+                end
                 Class_check{n+1} = NextPdata.Class;
-                if TF_flip_Parent
-                    xyz = flip(xyz,1);
-                    Branch = flip(Branch,1);
-                    Signal = flip(Signal,1);
-                    Noise = flip(Noise,1);
-                    Diameter = flip(Diameter,1);
-                    Theta = flip(Theta,1);
-                    NewXYZ = flip(NewXYZ,1);
-                end
-                if TF_flip_Foward
-                    xyz_Add = flip(xyz_Add,1);
-                    Branch_Add = flip(Branch_Add,1);
-                    Signal_Add = flip(Signal_Add,1);
-                    Noise_Add = flip(Noise_Add,1);
-                    Diameter_Add = flip(Diameter_Add,1);
-                    Theta_Add = flip(Theta_Add,1);
-                    NewXYZ_Add = flip(NewXYZ_Add,1);
-                end
-                xyz = cat(1,xyz,xyz_Add);
-                Branch = cat(1,Branch,Branch_Add);
-                Signal = cat(1,Signal,Signal_Add);
-                Noise = cat(1,Noise,Noise_Add);
-                Diameter = cat(1,Diameter,Diameter_Add);
-                Theta = cat(1,Theta,Theta_Add);
-                NewXYZ = cat(1,NewXYZ,NewXYZ_Add);
             end
+            %% old version
+%             Signal = Pdata(Startindex).Signal;
+%             Noise = Pdata(Startindex).Noise;
+%             Diameter = Pdata(Startindex).Diameter;
+%             Theta = Pdata(Startindex).Theta;
+%             NewXYZ = Pdata(Startindex).NewXYZ;
+%             % check class
+%             Class_check = cell(1,length(Ind));
+%             Class_check{1} = Pdata(Startindex).Class;
+%             BeforeIndex = Startindex;
+%             for n = 1:length(Ind)-1
+%                 [NearIndex,TF_flip_Parent,TF_flip_Foward,ErrorString] ...
+%                 = obj.FindNearestID(xyz,Pdata,sort_table,SEG.ResolutionXYZ);
+%                 NearIndex = NearIndex(1);
+%                 NextPdata = Pdata(NearIndex);
+%                 sort_table(NearIndex) = false;
+%                 if ~isempty(ErrorString)
+%                     warning(['Force Connecting : ' num2str(ForceConnecting)])
+%                     if ~ForceConnecting
+%                         fprintf('Force Connecting = false\n    if you wanna connect, need "-f" in input.\n')
+%                         error(['    Error Index : ' num2str(Ind(BeforeIndex)) ' and ' num2str(Ind(NearIndex))])
+%                     else
+%                         fprintf('Force Connecting = true\n')
+%                         fprintf(['    Force Connect. : ' num2str(Ind(BeforeIndex)) ' and ' num2str(Ind(NearIndex)) '\n'])
+%                     end
+%                 end
+%                 BeforeIndex = NearIndex;
+%                 xyz_Add = NextPdata.PointXYZ;
+%                 Branch_Add = NextPdata.Branch;
+%                 Signal_Add = NextPdata.Signal;
+%                 Noise_Add = NextPdata.Noise;
+%                 Diameter_Add = NextPdata.Diameter;
+%                 Theta_Add = NextPdata.Theta;
+%                 NewXYZ_Add = NextPdata.NewXYZ;
+%                 Class_check{n+1} = NextPdata.Class;
+%                 if TF_flip_Parent
+%                     xyz = flip(xyz,1);
+%                     Branch = flip(Branch,1);
+%                     Signal = flip(Signal,1);
+%                     Noise = flip(Noise,1);
+%                     Diameter = flip(Diameter,1);
+%                     Theta = flip(Theta,1);
+%                     NewXYZ = flip(NewXYZ,1);
+%                 end
+%                 if TF_flip_Foward
+%                     xyz_Add = flip(xyz_Add,1);
+%                     Branch_Add = flip(Branch_Add,1);
+%                     Signal_Add = flip(Signal_Add,1);
+%                     Noise_Add = flip(Noise_Add,1);
+%                     Diameter_Add = flip(Diameter_Add,1);
+%                     Theta_Add = flip(Theta_Add,1);
+%                     NewXYZ_Add = flip(NewXYZ_Add,1);
+%                 end
+%                 xyz = cat(1,xyz,xyz_Add);
+%                 Branch = cat(1,Branch,Branch_Add);
+%                 Signal = cat(1,Signal,Signal_Add);
+%                 Noise = cat(1,Noise,Noise_Add);
+%                 Diameter = cat(1,Diameter,Diameter_Add);
+%                 Theta = cat(1,Theta,Theta_Add);
+%                 NewXYZ = cat(1,NewXYZ,NewXYZ_Add);
+%             end
+%             
+            
             %% check same point
+            xyz = NewPdata.PointXYZ;
             Plen = obj.xyz2plen(xyz,SEG.ResolutionXYZ);
             Plen(1) = inf;
             Delete_Ind = Plen ==0;
             xyz(Delete_Ind,:) = [];
-            Signal(Delete_Ind) = [];
-            Noise(Delete_Ind) = [];
-            Diameter(Delete_Ind) = [];
-            Theta(Delete_Ind) = [];
-            NewXYZ(Delete_Ind,:) = [];
+            for nf = 1:length(PFields)
+                Xn = DefaultPdata.(PFields{nf});
+                if and(and(or(isnumeric(Xn),islogical(Xn)),size(Xn,1)>1),...
+                        ~max(strcmp(PFields{nf},obj.Pointdata_UniqueNumels)))
+                    X = NewPdata.(PFields{nf});
+                    X(Delete_Ind,:) = [];
+                    NewPdata.(PFields{nf}) = X;
+                end
+            end
+                
 
 
             if max(strcmpi(Class_check,'Art.'))
@@ -695,15 +763,6 @@ classdef Segment_Functions
             end
 
             %% output
-
-            NewPdata.PointXYZ = xyz;
-            NewPdata.Branch   = Branch;
-            NewPdata.Signal   = Signal;
-            NewPdata.Noise    = Noise;
-            NewPdata.Diameter = Diameter;
-            NewPdata.Theta    = Theta;
-            NewPdata.NewXYZ   = NewXYZ;
-
 
             NewPdata.Type     = SegmentType;
             NewPdata.Length   = sum(obj.xyz2plen(xyz,SEG.ResolutionXYZ));
