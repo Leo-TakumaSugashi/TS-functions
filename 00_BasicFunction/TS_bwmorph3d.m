@@ -88,7 +88,7 @@ switch lower(meth)
         [Y,X,Z] = ind2sub(size(bw),find(bw(:)));
         EndP = TS_bwmorph3d(bw,'endpoint','none');
 %         bw(EndP) = false;
-        se1 = uint8(ones(3,3,3));
+        se1 = double(ones(3,3,3));
 %         se2 = false(3,3,3);
 %         se2(2,2,2) = true;
 %         se2 = bwdist(se2);

@@ -3,6 +3,9 @@ classdef Reconstruction_Group
     %
     % version 1.1,
     % add Check_Chase_data code 
+    %
+    % version 1.1.1
+    % add Voxels Patch 
     
     properties
         Name(1,:)char
@@ -1075,8 +1078,77 @@ classdef Reconstruction_Group
             end
         end
 
-        
-        
+        % % Patch sub-function
+        function fv = BWVoxels2patchdata(~,bw)
+            % fv = self.Voxels2patchdata(bw)
+            %
+            % Example
+            % a = false(3,3,3);
+            % a([1 5 14 24 23 27]) = 1;
+            % fv = self.BWVoxels2patchdata(a);
+            % figure,
+            % ph = patch(fv);
+            % ph.FaceAlpha = 0;
+            % ph.LineWidth =2;
+            % xlim([0.5 3.5])
+            % ylim([0.5 3.5])
+            % zlim([0.5 3.5])
+            % view(3),daspect(ones(1,3))
+            %
+            % ph.FaceAlpha =1;
+            % ph.FaceColor = ones(1,3)*.5;
+            % cmh = camlight;
+            
+            if ~islogical(bw)
+                error('input bw must be logical data')
+            end
+            
+            [y,x,z] = ind2sub(size(bw,[1 2 3]),find(bw(:)));
+            vertices = zeros(8*length(y),3);
+            faces = zeros(6*length(y),4);
+            for n = 1:length(y)
+                [v,f] = bw2fv(x(n),y(n),z(n));
+                vertices((n-1)*8+1:n*8,:) = v;
+                faces((n-1)*6+1:n*6,:) = f+(n-1)*8;
+            end
+            fv = struct('vertices',vertices,'faces',faces);
+            function [ver,face] = bw2fv(x,y,z)
+                ver = [x-0.5, y-0.5, z-0.5;
+                    x-0.5, y-0.5, z+0.5;
+                    x-0.5, y+0.5, z-0.5;
+                    x-0.5, y+0.5, z+0.5;
+                    x+0.5, y+0.5, z-0.5;
+                    x+0.5, y+0.5, z+0.5;
+                    x+0.5, y-0.5, z-0.5;
+                    x+0.5, y-0.5, z+0.5];
+                face = [1 2 4 3;
+                    3 4 6 5;
+                    5 6 8 7;
+                    7 8 2 1;
+                    1 3 5 7;
+                    2 4 6 8];
+            end
+        end
+        function [ph,cmh] = BWVoxels2patchFigure(obj,bw)
+            %[ph,cmh] = self.BWVoxels2patchFigure(bw)
+            %see also, self BWVoxels2patchdata
+            
+            fv = obj.BWVoxels2patchdata(bw);
+            figure,
+            ph = patch(fv);
+            ph.FaceAlpha = 1;
+            ph.FaceColor = [.7 .7 .7];
+            ph.LineWidth =2;
+            ph.Parent.YDir = 'reverse';
+            axis off
+            cmh = camlight;
+            cmh.Position(2) = 25;
+            xlim([0.5 size(bw,2)+0.5])
+            ylim([0.5 size(bw,1)+0.5])
+            zlim([0.5 size(bw,3)+0.5])
+            view(3),
+            daspect(ones(1,3))
+        end
         
         
         %% for check program
