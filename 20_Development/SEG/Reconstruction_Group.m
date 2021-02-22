@@ -13,7 +13,7 @@ classdef Reconstruction_Group
         SEGview_textLim(1,1) = 100
         CircumferenceNum = 8;
         Editor = 'Leo-Takuma-Sugashi'
-        Version = '1.1'
+        Version = '1.1.1'
         Value
         UserData
     end
