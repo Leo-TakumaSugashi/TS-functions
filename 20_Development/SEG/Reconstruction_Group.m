@@ -41,7 +41,12 @@ classdef Reconstruction_Group
         end
         function bw = SEG2Reconstract(obj,SEG)
             DiamImage = obj.SEG2DiamImage(SEG);
-            bw = TS_Diam2ReconstBW(DiamImage,mean(SEG.ResolutionXYZ));
+            if SEG.Size(3) ==1
+                inReso = mean(SEG.ResolutionXYZ(1:2));
+            else
+                inReso = mean(SEG.ResolutionXYZ);
+            end
+            bw = TS_Diam2ReconstBW(DiamImage,inReso);
 %             bw = TS_Diam2ReconstBW_parfor(DiamImage,mean(SEG.ResolutionXYZ));
         end
         function DiamImage = SEG2DiamImage(~,SEG)

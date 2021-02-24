@@ -1,19 +1,6 @@
 function A = TS_Circmedfilt(im,Rad)
-% A = TSmedfilt2(im,Ksiz,varargin)
-% medfilt2 ‚Ì’[‚ÌŒvŽZ‰ñ”ð
-%   & circle kernel size meddian filter
-% help TS_Circmedfilt2d
-% 
-%  Exapmple
-% im = imread('cameraman.tif');
-% normal_med = medfilt2(im,[31 31]);
-% ts_med = TS_Circmedfilt(im,[31 31]);
-% figure,
-% subplot(1,2,1)
-% imagesc(normal_med),axis image
-% subplot(1,2,2)
-% imagesc(ts_med),axis image
-% impixelinfo
+fprintf('This function will be delete. \n')
+warning('Current version "TS_Circmedfilt2d" ... ')
 
     
 imsiz = size(im);

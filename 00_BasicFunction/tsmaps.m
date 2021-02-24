@@ -105,6 +105,21 @@ classdef tsmaps
                linspace(1,size(c,1),obj.num)'),...
                linspace(0,1,obj.num));
         end
+        function map = Favorit(obj,varargin)
+            if nargin ==2
+                obj.num = varargin{1};
+            end
+            c = [0   0   0;
+                 0   1   0;
+                 0   0   1;
+                 1   .2  .1;
+                 1   1   0];
+%            map = obj.Interp_mapnum(c);
+           map = rgbmap2indgray(...
+               interp2(c,1:3,...
+               linspace(1,size(c,1),obj.num)'),...
+               linspace(0,0.9,obj.num));
+        end
         function map = Length(obj)
             c = [0   0   1;
                  1   0   1;
@@ -144,6 +159,10 @@ classdef tsmaps
                 HSV(:,3) = HSV(:,3).^r;
             end
             map = hsv2rgb(HSV);
+        end
+        function map = Interp_mapnum(obj,c)
+            [X,Y] = meshgrid(1:3,linspace(1,size(c,1),obj.num));
+            map = interp2(c,X,Y);
         end
         function map = class_map(~)
             map = [...

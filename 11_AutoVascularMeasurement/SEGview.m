@@ -9,6 +9,18 @@ function varargout = SEGview(varargin)
 V = Sugashi_ReconstructGroup;
 [axh,SEG,Type] = input_param(varargin{:});
 p = V.SEGview_Limit(axh,SEG,Type);
+
+xmax = (SEG.Size(1)-1)*SEG.ResolutionXYZ(1);
+ymax = (SEG.Size(2)-1)*SEG.ResolutionXYZ(2);
+zmax = (SEG.Size(3)-1)*SEG.ResolutionXYZ(3);
+
+axh = p.Parent;
+xlim(axh,[0 xmax])
+ylim(axh,[0 ymax])
+if SEG.Size(3)>1
+    zlim(axh,[0 zmax]);
+end
+daspect(axh,ones(1,3))
 if nargout >0
     varargout{1} = p;
 end
