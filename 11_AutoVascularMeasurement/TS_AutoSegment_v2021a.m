@@ -152,6 +152,8 @@ Pdata(1:10000) = struct('PointXYZ',[],'Type',[],'Length',[],'Branch',[]); %  poi
 %% Analysis Branch-point and End-point 
 disp('Analysis Branch-point and End-point ')
 [BPcentroid,~,BPgroup,EndP] = TS_bwmorph3d(bwthindata,'branchpoint','none');
+
+
 BPcentroid(AddBP) = true;
 EndP(AddBP) = false;
  %% % term add . 2016.10.17
@@ -311,7 +313,9 @@ disp(['End Point Num.:' num2str(n) ', Segment(bp-end) NUM.:' num2str(Pdata_count
 
 %% Next Step
 disp('   ... 2nd Branch - Branch')
+
 NewEndP = TS_bwmorph3d(bwthindata,'endpoint');
+
 
 %% 2nd Segment Branch - Branch
 [NewEy,NewEx,NewEz] = ind2sub(size(NewEndP),find(NewEndP(:)));
@@ -708,7 +712,9 @@ Pdata(1:10000) = struct('PointXYZ',[],'Type',[],'Length',[],'Branch',[]); %  poi
 
 %% Analysis Branch-point and End-point 
 % disp('Analysis Branch-point and End-point ')
+
 [BPcentroid,~,BPgroup,EndP] = TS_bwmorph3d(bwthindata,'branchpoint','none');
+
 BPcentroid(AddBP) = true;
 EndP(AddBP) = false;
  %% % term add . 2016.10.17

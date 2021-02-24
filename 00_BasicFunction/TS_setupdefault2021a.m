@@ -114,6 +114,14 @@ set(0,'DefaultFigureColor',FigColor)
 %% figure Print option
 set(0,'DefaultFigurePaperPositionMode',FPPMode);
 set(0,'DefaultFigurePaperPosition',PPosition)
+
+%% encording
+EnC = slCharacterEncoding();
+if ~strcmpi(EnC,'UTF-8')
+    warning(['Encoding Change ' EnC ' to UTF-8' ])
+    slCharacterEncoding('UTF-8')
+    slCharacterEncoding()
+end
  
 end
 

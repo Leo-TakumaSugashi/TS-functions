@@ -461,8 +461,8 @@ classdef Reconstruction_Group
             %% Type same, Diameter, Length, AverageDiameter,..
             MaximumLen = size(cat(1,Pdata.PointXYZ),1);
             SegNum = length(Pdata);
-            Data = inf(MaximumLen+SegNum,1);
-            XYZ = inf(MaximumLen+SegNum,3);
+            Data = inf(MaximumLen+SegNum*5,1);
+            XYZ = inf(MaximumLen+SegNum*5,3);
             c = 1;
             indexTF = false(1,length(Pdata));
             fprintf('SEG view (Limit ver.), setting up.. Please waite. \n')
@@ -552,16 +552,16 @@ classdef Reconstruction_Group
                     D = nan(size(Pdata(n).PointXYZ,1),1);
                 end
                 
-%                 try
-                XYZ(c:c+size(D,1)-1,:) = Pdata(n).PointXYZ;
-%                 catch err
-%                     keyboard
-%                 end
-                
-                XYZ(c+size(D,1),:) = nan;
+
+                XYZ(c:c+size(D,1)-1,:) = Pdata(n).PointXYZ;                
+                XYZ(c+size(D,1),:) = Pdata(n).PointXYZ(end,:);                
                 Data(c:c+size(D,1)-1,:) = D; 
-                Data(c+size(D,1),:) = nan;
+                Data(c+size(D,1),:) = D(end);
                 c = c+size(D,1)+1;
+                XYZ(c,:) = nan;
+                Data(c,:) = nan;
+                c = c+ 1;
+                
                 TS_WaiteProgress(n/length(Pdata))
 %                 XYZ = cat(1,XYZ,Pdata(n).PointXYZ,nan(1,3));
 %                 Data = cat(1,Data,D,nan);
@@ -744,6 +744,24 @@ classdef Reconstruction_Group
             p = plot3(axh,xyz(:,1),xyz(:,2),xyz(:,3));            
         end
         
+        
+        function p = SEGview_old(obj,axh,SEG)
+            Pdata = SEG.Pointdata;
+            Reso = SEG.ResolutionXYZ;
+            c = 1;
+            for n = 1:length(Pdata)
+                if Pdata(n).ID < 0
+                    continue
+                end
+                xyz = Pdata(n).PointXYZ;
+                xyz = (xyz-1).*Reso;
+                hold(axh,'on')
+                p(c) = plot3(axh,xyz(:,1),xyz(:,2),xyz(:,3),...
+                    'Marker','none',...
+                    'LineStyle','-',...
+                    'LineWidth',2);
+            end
+        end
         %% tube plot
         function [x,y,z,CData] = Tubeplot(~,curve,r,n,ct,varargin)
         % Usage: [x,y,z,CData]=Tubeplot(curve,r,n,ct)

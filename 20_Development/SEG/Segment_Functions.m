@@ -63,6 +63,12 @@ classdef Segment_Functions
     % Solving connection problems. 
     % But, Scalar data connections other than ID and Length are 
     % only arranged vertically.
+    %
+    %  Feb. 24th, 2021, Sugashi
+    %  shoud edit..... fuckin error
+    %  HigherResolutionOfBranchCoordinates 
+    %  Reconnect2Branch
+    %  JointBallRadius
 
     properties
 
@@ -176,21 +182,28 @@ classdef Segment_Functions
                 if sum(delete_index)>0
                     xyz(delete_index,:) = [];
                     Pdata(n).PointXYZ = xyz;
-                    if size(Pdata(n).Diameter,1) == PointNumel
-                        Pdata(n).Signal(delete_index,:) = [];
-                        Pdata(n).Noise(delete_index,:) = [];
-                        Pdata(n).Theta(delete_index,:) = [];
-                        Pdata(n).Diameter(delete_index,:) = [];
-                        Pdata(n).LineRotDiameter(delete_index,:) = [];
-                        Pdata(n).NormDiameter(delete_index,:) = [];
-                        Pdata(n).EllipticDiameter(delete_index,:) = [];
-                        Pdata(n).NewXYZ(delete_index,:) = [];
-                        Pdata(n).NormThetaXY(delete_index,:) = [];
-                        Pdata(n).Fai_AngleFromAxisZ(delete_index,:) = [];
-                        Pdata(n).AnalysisShoudBeElliptic(delete_index,:) = [];
-                        Pdata(n).NewXYZrot(delete_index,:) = [];
-                        Pdata(n).NewXYZnor(delete_index,:) = [];
-                        Pdata(n).NewXYZell(delete_index,:) = [];
+                    FiName = fieldnames(Pdata);
+                    for k = 1:length(FiName)
+                        if and(or(isnumeric(Pdata(n).(FiName{k})),...
+                                islogical(Pdata(n).(FiName{k}))),...
+                                ~strcmp(FiName{k},'PointXYZ'))
+                            if size(Pdata(n).(FiName{k}),1) == PointNumel
+                                Pdata(n).(FiName{k})(delete_index,:) = [];
+%                                 Pdata(n).Noise(delete_index,:) = [];
+%                                 Pdata(n).Theta(delete_index,:) = [];
+%                                 Pdata(n).Diameter(delete_index,:) = [];
+%                                 Pdata(n).LineRotDiameter(delete_index,:) = [];
+%                                 Pdata(n).NormDiameter(delete_index,:) = [];
+%                                 Pdata(n).EllipticDiameter(delete_index,:) = [];
+%                                 Pdata(n).NewXYZ(delete_index,:) = [];
+%                                 Pdata(n).NormThetaXY(delete_index,:) = [];
+%                                 Pdata(n).Fai_AngleFromAxisZ(delete_index,:) = [];
+%                                 Pdata(n).AnalysisShoudBeElliptic(delete_index,:) = [];
+%                                 Pdata(n).NewXYZrot(delete_index,:) = [];
+%                                 Pdata(n).NewXYZnor(delete_index,:) = [];
+%                                 Pdata(n).NewXYZell(delete_index,:) = [];
+                            end
+                        end
                     end
                 end
                 catch err
@@ -2490,6 +2503,18 @@ classdef Segment_Functions
             NewSEG = obj.Segment;
             fprintf(['   Changed # ' num2str(c) '\n'])
         end
+        
+        function NewSEG = HigherResolutionOfBranchCoordinates(obj,SEG,cbw)
+            
+            if ~max(SEG.Size==size(cbw,[1 2 3]))
+                error('Input BW is not Correct Size')
+            end
+            
+            NewSEG = SEG;
+            Pdata = SEG.Pointdata;
+            
+            
+        end
 
 
         function [index,Type] = Find_EndSEG(obj,Pdata)
@@ -4403,12 +4428,12 @@ classdef Segment_Functions
             Image(Image<0.6) = 0;
             Image = uint8((Image - 0.6)/0.4*255);
             Image = uint8(imresize3(Image,[64,64,64]));
-            Reso = [0.8 0.8 1.6];
+            Reso = [1 1 1.2];
             [rImage,NewReso] = TS_EqualReso3d_2017(Image,Reso,1);
             bw = rImage>100;
             skel = bwskel(bw);
             skel = TS_bwmorph3d(skel,'thin');
-            SEG = TS_AutoSegment_v2021a(skel,NewReso,[],0);
+            SEG = TS_AutoSegment_v2021b(skel,NewReso,[],0);
             SEG = obj.set_Segment(SEG,'f');
         end
     end
