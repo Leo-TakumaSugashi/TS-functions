@@ -45,7 +45,7 @@ classdef Segment_Functions
     %  Scalar data connections other than ID and Length are only arranged vertically.
     %  It is recommended to ReDo the calculation related to space after connection.
     
-    % % version memo
+    %% version memo
     % Dec. 30th, 2020 Sugashi
     %  Edited set_Segment for new structure(NewXYZrot,nor,ell)
     %
@@ -69,7 +69,7 @@ classdef Segment_Functions
     %  HigherResolutionOfBranchCoordinates 
     %  Reconnect2Branch
     %  JointBallRadius
-
+%% Properties
     properties
 
         Segment  % Main data. Vasculature Segment. ( = TS_AutoSegmnet_vNewest())
@@ -247,6 +247,12 @@ classdef Segment_Functions
                     Pdata(n).Diameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
                 end
             end
+            if ~isfield(Pdata,'Diameter_EnablePoint') || strcmp(OverWriteType,'f')
+                for n = 1:length(Pdata)
+                    Pdata(n).Diameter_EnablePoint = true(size(Pdata(n).PointXYZ,1),1);
+                end
+            end
+            
             if ~isfield(Pdata,'LineRotDiameter') || strcmp(OverWriteType,'f')
                 for n = 1:length(Pdata)
                     Pdata(n).LineRotDiameter = nan(size(Pdata(n).PointXYZ,1),1,'like',single(1));
@@ -552,7 +558,6 @@ classdef Segment_Functions
             SEG.SegmentFunctionLastUpdate = obj.LastDate;
 
         end
-
 
         %% alias
         function Pdata = Pointdata_ID(obj,ID)
@@ -2825,9 +2830,9 @@ classdef Segment_Functions
             p = nan(1,size(Branch,1));
             for n = 1:length(p)
                 b = Branch(n,:);
-                x = xyz(:,1) == b(1);
-                y = xyz(:,2) == b(2);
-                z = xyz(:,3) == b(3);
+                x = single(xyz(:,1)) == single(b(1));
+                y = single(xyz(:,2)) == single(b(2));
+                z = single(xyz(:,3)) == single(b(3));
                 P = find(and(and(x,y),z));
                 if isempty(P)
                     len = obj.GetEachLength(xyz,b,Reso);
@@ -2902,6 +2907,7 @@ classdef Segment_Functions
         end
 
         function ID = FindID_xyz(obj,XYZ)
+            XYZ = single(XYZ);
             x = XYZ(1);
             y = XYZ(2);
             z = XYZ(3);
@@ -2910,7 +2916,7 @@ classdef Segment_Functions
             Pdata = Pdata(catID>0);
             ID = [];
             for n = 1:length(Pdata)
-                xyz = Pdata(n).PointXYZ;
+                xyz = single(Pdata(n).PointXYZ);
                 TFx = max(xyz(:,1) == x);
                 TFy = max(xyz(:,2) == y);
                 TFz = max(xyz(:,3) == z);
@@ -2938,6 +2944,33 @@ classdef Segment_Functions
                     ID = [ID Pdata(n).ID];
                 end
             end
+        end
+        function [ID,minLen] = FindID_xyz_nearest(obj,xyz)
+            Pdata = obj.Segment.Pointdata;
+            catID = cat(1,Pdata.ID);
+            Pdata = Pdata(catID>0);
+            IDs = [];
+            for n = 1:length(Pdata)
+                IDs = cat(1,IDs,repmat(Pdata(n).ID,size(Pdata(n).PointXYZ,1),1));
+            end
+            XYZ = cat(1,Pdata.PointXYZ);
+            len = obj.GetEachLength(xyz,XYZ,obj.Segment.ResolutionXYZ);
+            [minLen,ind] = min(len);
+            ID = IDs(ind);
+            if isscalar(ID)
+                return
+            end
+            DeleteTF = false(size(ID));            
+            for n = 1:length(ID)-1
+                p = find(ID(n) == ID(n+1:end));
+                if isempty(p)
+                    continue
+                else
+                    p = p + n;
+                    DeleteTF(p) = true;
+                end
+            end
+            ID(DeleteTF) = [];
         end
         function obj = Delete_loopSegment(obj)
             fprintf('##### Delete loop Segment #####')
@@ -3142,9 +3175,9 @@ classdef Segment_Functions
             c = 1;
             for n = 1:size(XYZ_matrix,1)
                 xyz = XYZ_matrix(n,:);
-                sameX = BPmatrix(:,1) == xyz(1);
-                sameY = BPmatrix(:,2) == xyz(2);
-                sameZ = BPmatrix(:,3) == xyz(3);
+                sameX = single(BPmatrix(:,1)) == single(xyz(1));
+                sameY = single(BPmatrix(:,2)) == single(xyz(2));
+                sameZ = single(BPmatrix(:,3)) == single(xyz(3));
                 TF = sum(cat(2,sameX,sameY,sameZ),2) ==3;
                 if max(TF) ==0
                     BPmatrix(c,:) = xyz;
@@ -3156,9 +3189,9 @@ classdef Segment_Functions
 
             for n = 1:size(BPmatrix,1)
                 xyz = BPmatrix(n,:);
-                sameX = XYZ_matrix(:,1) == xyz(1);
-                sameY = XYZ_matrix(:,2) == xyz(2);
-                sameZ = XYZ_matrix(:,3) == xyz(3);
+                sameX = single(XYZ_matrix(:,1)) == single(xyz(1));
+                sameY = single(XYZ_matrix(:,2)) == single(xyz(2));
+                sameZ = single(XYZ_matrix(:,3)) == single(xyz(3));
                 TF = sum(cat(2,sameX,sameY,sameZ),2) ==3;
                 BPmatrix(n,5) = sum(TF);
             end

@@ -6,7 +6,7 @@ function varargout = SEGview(varargin)
 % handle = SEGview(...)
 % 
 % see also Sugashi_ReconstructGroup
-V = Sugashi_ReconstructGroup;
+V = Reconstruction_Group;
 [axh,SEG,Type] = input_param(varargin{:});
 p = V.SEGview_Limit(axh,SEG,Type);
 

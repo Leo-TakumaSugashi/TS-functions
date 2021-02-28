@@ -3,12 +3,13 @@ function map = GetColorChannels(num)
 %  Referens, help  makemap.m
 switch num
     case 1
-        map = [1 .4 0];
+        map = [1 1 1];
     case 2
-        map = [1 .4 0;0 1 0];
+%         map = [1 0.1 1;0.4 1 0.2];
+        map = [1 0.1 1;0.1 1 0.2];
     case 3
 %         map = eye(3);
-        map = [1 .4 0;0 1 0;.4 .5 1];
+        map = [1 .1 1;1 1 .1;0.3 0.7 1];
     case {4, 5, 6} 
         %% Old hsv ver
         h = (0:1/(num-1):1)' *6/7;

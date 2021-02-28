@@ -125,7 +125,8 @@ if nargin==2
         catch err
             disp(err)
         end
-    else
+    else 
+        
         error([mfilename ' : Input methode is NOT correct'])
     end
 else

@@ -1,4 +1,11 @@
 function X = TS_montage(Image,H,Gap,GapColor,varargin)
+%
+% Image , size(Image,4) will be montage,
+% H     , number of Hight as montage
+% Gap   , Gap size [pix]
+% GapColor, colormap [R,G,B]
+%
+%
 
 if size(Image,4) < H
     error('fuck')
