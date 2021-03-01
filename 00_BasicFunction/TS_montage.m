@@ -1,14 +1,14 @@
 function X = TS_montage(Image,H,Gap,GapColor,varargin)
 %
 % Image , size(Image,4) will be montage,
-% H     , number of Hight as montage
+% H     , number of Width as montage
 % Gap   , Gap size [pix]
 % GapColor, colormap [R,G,B]
 %
 %
 
 if size(Image,4) < H
-    error('fuck')
+    H = size(Image,4);
 end
 V = ceil(size(Image,4)/H);
 if nargin == 4
@@ -37,7 +37,7 @@ for n = 1:V
     end
     h_gap = repmat(GapColor,[Gap size(x,2)]);
     if lastTF
-        if size(X,2)~=size(x,2)
+        if and(size(X,2)~=size(x,2),size(X,2)>0)
             r = padarray(x(:,:,1),[0 size(X,2)-size(x,2)],GapColor(1),'post');
             g = padarray(x(:,:,2),[0 size(X,2)-size(x,2)],GapColor(2),'post');
             b = padarray(x(:,:,3),[0 size(X,2)-size(x,2)],GapColor(3),'post');

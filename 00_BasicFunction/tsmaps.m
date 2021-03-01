@@ -109,11 +109,13 @@ classdef tsmaps
             if nargin ==2
                 obj.num = varargin{1};
             end
-            c = [0   0   0;
+            c = [0 0 0 ;
+                 0.1 0.3 1;
+                 0   1   1;
                  0   1   0;
-                 0   0   1;
-                 1   .2  .1;
-                 1   1   0];
+                 0.8 1   0;
+                 1   1   0;
+                 1   0.3  0];
 %            map = obj.Interp_mapnum(c);
            map = rgbmap2indgray(...
                interp2(c,1:3,...

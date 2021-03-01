@@ -913,7 +913,7 @@ classdef Reconstruction_Group
             fvx.vertices = [];
             fvx.facevertexcdata = [];
         end
-        function p = ReconstructSEG(obj,axh,SEG,varargin)
+        function p = Reconstruct_TubeSEG(obj,axh,SEG,varargin)
             %%
             %% having bag on SEGdim2Tube
             %%

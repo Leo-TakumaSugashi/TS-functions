@@ -69,8 +69,8 @@ else
 %     hsvmap = rgb2hsv(parula(256));
 %     hsvmap(:,3) = log10(linspace(0,1,256)*9+1);
 %     map = hsv2rgb(hsvmap);
-%     map = mymap.Favorit;
-    map = gray(256);
+    map = mymap.Favorit;
+%     map = gray(256);
     clorder = ...
         [  0,   0, 255; % ??????
            0, 128,   0; % ??????

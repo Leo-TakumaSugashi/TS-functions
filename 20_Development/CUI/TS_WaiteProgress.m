@@ -7,7 +7,7 @@ elseif length(STR) == 5
 else
     STR = [' ' STR];
 end
-if floor(p*20)>=20
+if floor(p*1e5)>=1e5
     PROGRESSBAR = '[####################]';
 elseif floor(p*20)>19
     PROGRESSBAR = '[################### ]';
