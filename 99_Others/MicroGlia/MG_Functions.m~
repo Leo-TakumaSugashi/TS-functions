@@ -1,7 +1,7 @@
 classdef MG_Functions
     properties
         Version = 'Elsa'
-        Update = '2021-03-09' %'2019-11-19'by Tsukada, 2021-03-09 Sugashi
+        Update = '2019-10-04' %'2019-11-19'by Tsukada
         Leica_Type = 'sp8'
         Editors = 'Ryo Tsukada, T.Sugashi'
         UserData 
@@ -20,7 +20,7 @@ classdef MG_Functions
             tic
             %% setup
             Fx =@(s) (s .*0.02 +50).*s *0.01; %% Old Threshold for sp8,,, might be wrong....
-            if ~max(strcmpi(class(Im),{'uint8','uint16'}))
+            if ~max(strcmpi(class(Im),'uint8'))
                 error('Input Class Is NOT uint8')
             end
             Info = {...
