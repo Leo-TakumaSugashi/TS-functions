@@ -1162,7 +1162,7 @@ for n = 1:length(ROIdata)
     Userdata = get(h,'Userdata');
     h = Userdata.handle;
     Userdata = get(h,'Userdata');
-    ROIdata = getappdata(fgh,'NowROIdata');
+%     ROIdata = getappdata(fgh,'NowROIdata');
     Lineobh = ROIdata(Userdata.NUM).Lineobh;
     Reso = getappdata(fgh,'Resolution');
     Nowsubfgh = findobj('Parent',fgh,'Tag','ViewerPanel');
@@ -1650,7 +1650,7 @@ fgh = get(get(oh,'Parent'),'Parent');
 if filename == 0
     return
 end
-load([pathname filename])
+load([pathname filename],'ROIdata')
 if isempty(who('ROIdata'))
     errordlg('This data is not ''ROIdata''')
     return
@@ -3575,7 +3575,7 @@ switch Type
                     warning('Input Dist is not enough...')
                 end
             case 'point'                
-                DrawROI(fgh,[],'impoint',NowPosi,GetCenterNow(3,fgh),GetCenterNow(4,fgh),roiColor)
+                DrawROI(fgh,[],'impoint',NowPosi,[GetCenterNow(3,fgh)-10 GetCenterNow(3,fgh)+10],GetCenterNow(4,fgh),roiColor)
             otherwise
         end
     case 'open'    %% Double Click
