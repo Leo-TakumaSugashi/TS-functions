@@ -335,7 +335,7 @@ mh(5) = uimenu(fgh,'Label','Developer');
                 FullPath = event.Source.Data{Ind(1),1};
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                 FullPath(FullPath==' ') = '_';
-                FullPath = TS_ConvertNAS(FullPath);
+                FullPath = TS_ConvertNAS(FullPath);%
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 extention = CheckExtention(FullPath);
                 switch extention
