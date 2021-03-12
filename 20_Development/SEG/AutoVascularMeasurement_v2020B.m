@@ -51,7 +51,9 @@ end
 
 
 if ~ischar(STR)
-    error('   Input Name should be string.\n')    
+    error('   Input Name should be string.\n')  
+else
+    STR = ['_' STR];
 end
 % % % DirCheck = dir(STR);
 % % % while ~isempty(DirCheck)

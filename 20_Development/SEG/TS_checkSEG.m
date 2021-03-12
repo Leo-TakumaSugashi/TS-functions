@@ -19,7 +19,7 @@ size(BPcheck)
 % keyboard
 %% main
     %% setting up
-Find_Dist = sqrt(3)*1.2;
+Find_Dist = sqrt(3)*3.2;
 Reso = [1 1 1];
 
     %% BPcheck as that able or not to find nearest True BP.
