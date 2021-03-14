@@ -3575,7 +3575,7 @@ switch Type
                     warning('Input Dist is not enough...')
                 end
             case 'point'                
-                DrawROI(fgh,[],'impoint',NowPosi,[GetCenterNow(3,fgh)-10 GetCenterNow(3,fgh)+10],GetCenterNow(4,fgh),roiColor)
+                DrawROI(fgh,[],'impoint',NowPosi,[GetCenterNow(3,fgh)-6 GetCenterNow(3,fgh)+15],GetCenterNow(4,fgh),roiColor)
             otherwise
         end
     case 'open'    %% Double Click
