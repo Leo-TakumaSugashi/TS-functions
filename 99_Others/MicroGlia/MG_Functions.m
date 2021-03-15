@@ -595,12 +595,13 @@ classdef MG_Functions
             for n = 1:length(Cropdata)
                 X(n).ID = IDs(n);
             end
-            PoolObj = gcp;
-            if isempty(PoolObj)
-%                 PoolObj = parcluster;
-                PoolObj = parpool;
-            end
-            parfor n = 2:length(Cropdata)
+%             PoolObj = gcp;
+%             if isempty(PoolObj)
+% %                 PoolObj = parcluster;
+%                 PoolObj = parpool;
+%             end
+            for n = 2:length(Cropdata)
+                try
                 X(n) = obj.FormAnalysis(...
                     Cropdata(n).Image,Cropdata(n).fImage,Gcrop(n).Image,...
                     Reso,Cropdata(n).CenterOfImage,Cropdata(n).centroidXYZ);                
@@ -613,7 +614,10 @@ classdef MG_Functions
                 TFx = and(Edge_Lim<=NewCent(1) , NewCent(1) <= FOV(2)-Edge_Lim);
                 TFy = and(Edge_Lim<=NewCent(2) , NewCent(2) <= FOV(1)-Edge_Lim);
                 TFz = and(Edge_Lim<=NewCent(3) , NewCent(3) <= FOV(3)-Edge_Lim);    
-                X(n).Analysis_Edge_TF = TFx && TFy && TFz;                
+                X(n).Analysis_Edge_TF = TFx && TFy && TFz;  
+                catch err
+                    keyboard
+                end
             end
             % X(2:length(Cropdata)).InputImage = [];
             output.Result = X;

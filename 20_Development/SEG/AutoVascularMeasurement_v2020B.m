@@ -181,7 +181,7 @@ save([folder_name filesep '05_SkeletonAndSEG' STR '.mat'],'cbw','Time','skel3D')
 tic,
 fprintf('Now Segmentation, and Shaving.....')
 % SEG = TS_AutoSegment_loop(skel3D,NewReso,false(size(skel3D)),20);
-SEG = TS_AutoSEG_mex(skel3D,NewReso,false(size(skel3D)),20);
+SEG = TS_AutoSegment_v2021b(skel3D,NewReso,false(size(skel3D)),20);
 %     [SEG,loopNum] = TS_SEGloop(skel3D,NewReso,false(size(skel3D)),20,STR);
 fprintf('Done\n')
 Sf = Segment_Functions;
