@@ -160,6 +160,10 @@ switch lower(meth)
             A = bwmorph(bw,'thin',Inf);
             return
         end
+        if sum(bw(:))==0
+            A = bw;
+            return
+        end
         timeval = tic;
         bw = padarray(bw,[2 2 2],false);
         DistBW = bwdist(~bw);

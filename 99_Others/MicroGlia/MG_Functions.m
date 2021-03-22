@@ -339,7 +339,7 @@ classdef MG_Functions
 
 
             %% Toc
-            toc
+%             toc
         end
         function AdjImage = VesselsMicrogliaContrastAdjust(~,Image,Reso)
             % AdjImage = VesselsMicrogliaContrastAdjust(Image,Reso)
@@ -600,6 +600,7 @@ classdef MG_Functions
 % %                 PoolObj = parcluster;
 %                 PoolObj = parpool;
 %             end
+            TS_WaiteProgress(0)
             for n = 2:length(Cropdata)
                 try
                 X(n) = obj.FormAnalysis(...
@@ -615,6 +616,7 @@ classdef MG_Functions
                 TFy = and(Edge_Lim<=NewCent(2) , NewCent(2) <= FOV(1)-Edge_Lim);
                 TFz = and(Edge_Lim<=NewCent(3) , NewCent(3) <= FOV(3)-Edge_Lim);    
                 X(n).Analysis_Edge_TF = TFx && TFy && TFz;  
+                TS_WaiteProgress(n/length(Cropdata))
                 catch err
                     keyboard
                 end
@@ -629,15 +631,16 @@ classdef MG_Functions
             AnalysisTime = toc(TIME);
             toc(TIME)
             fprintf(' output figure, and Save data(s)... \n');
-            PoolObj = TS_classdef2structure(PoolObj);
-            PoolObj.Cluster = TS_classdef2structure(PoolObj.Cluster);
-            PoolObj.Cluster.Jobs = [];
-            PoolObj.FevalQueue = TS_classdef2structure(PoolObj.FevalQueue);
-            PoolObj.FevalQueue.Parent = [];
+%             PoolObj = TS_classdef2structure(PoolObj);
+%             PoolObj.Cluster = TS_classdef2structure(PoolObj.Cluster);
+%             PoolObj.Cluster.Jobs = [];
+%             PoolObj.FevalQueue = TS_classdef2structure(PoolObj.FevalQueue);
+%             PoolObj.FevalQueue.Parent = [];
             MG_FunctionInfo = TS_classdef2structure(obj);
+%             save([SaveDir filesep NewDirName filesep 'DeveloperInfo.mat'],...
+%                 'AnalysisTime','PoolObj','MG_FunctionInfo')
             save([SaveDir filesep NewDirName filesep 'DeveloperInfo.mat'],...
-                'AnalysisTime','PoolObj','MG_FunctionInfo')
-
+                'AnalysisTime','MG_FunctionInfo')
             ROIdata = TS_Centroid2ROIdata(cat(1,X.Output_CentroidXYZ));
             save([SaveDir filesep NewDirName filesep 'NewROIdata.mat'],...
                 'ROIdata')            
