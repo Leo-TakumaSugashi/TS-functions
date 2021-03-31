@@ -1042,6 +1042,7 @@ switch Type
 %         imgh = findobj('Parent',axh(end),'tag','imgxy');
         if MIPdata.Dim == 3
             Image = squeeze(feval(MIPdata.Type,Image(:,:,Range,GetCenterNow(4,fgh),NowChannels),[],3));
+%             Image(:,:,2) = TS_GammaFilt(Image(:,:,2)-TS_GetBackgroundValue(Image(:,:,2))+0.5,0.3);
         elseif MIPdata.Dim==4
             Image = squeeze(feval(MIPdata.Type,Image(:,:,GetCenterNow(3,fgh),Range,NowChannels),[],4));
         else Image = squeeze(Image(:,:,GetCenterNow(3,fgh),GetCenterNow(4,fgh),NowChannels));

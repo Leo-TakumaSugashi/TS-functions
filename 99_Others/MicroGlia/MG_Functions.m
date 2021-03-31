@@ -1,7 +1,7 @@
 classdef MG_Functions
     properties
-        Version = 'Elsa'
-        Update = '2021-03-09' %'2019-11-19'by Tsukada, 2021-03-09 Sugashi
+        Version = 'Falcon'
+        Update = '2021-03-31' %'2019-11-19'by Tsukada, 2021-03-09 Sugashi
         Leica_Type = 'sp8'
         Editors = 'Ryo Tsukada, T.Sugashi'
         UserData 
@@ -116,7 +116,7 @@ classdef MG_Functions
             % % % % % using Gaussian % % % % % % % % % % % % % % % % % % % % 
             % GIm = TS_GaussianFilt(Im,Reso,[1 1 1]);
             Signal = GIm(yind,xind,zind);
-            Signal = mean(Signal(:));
+            Signal = nanmean(Signal(:));
             Noise = TS_GetBackgroundValue(GIm(:));
             GIm = max(GIm - Noise,0);
             if Noise >= Signal
