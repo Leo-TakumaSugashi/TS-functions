@@ -48,7 +48,7 @@ H = create_base_GUI(NewReso1,NewReso2,FOV1,FOV2,Image1,Image2);
 ResetSize
 
 %% Panel3 Depict, drawing
-V = Sugashi_ReconstructGroup;
+V = Reconstruction_Group;
 S = Segment_Functions;
 SEG1 = S.set_Segment(SEG1);
 SEG2 = S.set_Segment(SEG2);
@@ -72,7 +72,8 @@ hold(H.Depth_Stretch_axes,'on')
 H.BaseReso = SEG1.ResolutionXYZ;
 H.ObjectReso = SEG2.ResolutionXYZ;
 ObjFOV = (SEG2.Size-1) .* H.ObjectReso;
-H.ObjectCenter = ObjFOV/2;
+% H.ObjectCenter = ObjFOV/2;
+H.ObjectCenter = [ObjFOV(1:2)/2 ObjFOV(3)]; %% 2021 04 02 edit by Sugashi,
 %% Depth Strech
 H.Stretch_Group = setup_StrechROIpoint(H);
 DrawStretchLine(H);
@@ -80,7 +81,9 @@ H = getappdata(H.Figure,'Data');
 %% set up Image 
 fgh = H.Figure;
 H.imageh.CData = GetSliceImage;
-WinOnTop(fgh,true);
+if ispc
+    WinOnTop(fgh,true);
+end
 
 %% Callback
 AddCallback
@@ -298,6 +301,7 @@ setappdata(H.Figure,'Data',H)
             'Units','Pixels',...
             'Position',[70 70 490 200],...
             'FontSize',H.FontSiz);
+        
         ylabel(H.Depth_Stretch_axes,'Stretch Depth [\mum]')
         xlabel(H.Depth_Stretch_axes,'Base Depth [\mum]')
         H.Interp_Type_popup = uicontrol(H.Panel2,...
@@ -384,14 +388,15 @@ setappdata(H.Figure,'Data',H)
         xmax = max(H.Plot_Stretch.XData);
         ymax = max(H.Plot_Stretch.YData);
         G.SurfStatic = plot(H.Depth_Stretch_axes,xmax,ymax,'sr','MarkerSize',6);
+        daspect(H.Depth_Stretch_axes,ones(1,3))
         xmin = min(H.Plot_Stretch.XData);
         ymin = min(H.Plot_Stretch.YData);
         G.BottomDynamic = drawpoint(H.Depth_Stretch_axes,...
             'Position',[xmin,ymin],'DrawingArea',[xmin,G.Minimum,0,G.Maximum]);
         delete(G.BottomDynamic.UIContextMenu.Children(1))
-
+        
         G.Middles = [];
-        G.InterpType = 'phcp';
+        G.InterpType = 'pchip';
         Handles = G;
     end
     
@@ -561,7 +566,10 @@ setappdata(H.Figure,'Data',H)
     function RotMovStretchImage
         fprintf('Setting up Rotate,Move,Stretch Image,,, waite.\n')
         RMSD = GetRotMovStretchData;
-        imobj = H.useImage2;
+        Im2 = evalin('base',H.Image2_Name);
+        NewSiz2 = round( (H.FOV2 ./ H.NewReso2 ) + 1);
+        imobj = imresize3(Im2,NewSiz2);
+%         imobj = H.useImage2;
         Reso= H.NewReso2;
         J = S.Image2RotMovStretch(imobj,Reso,RMSD);
         H.useImage2 = J;
@@ -688,7 +696,7 @@ setappdata(H.Figure,'Data',H)
         XYZ = H.OriginalXYZ;        
         RMSD = GetRotMovStretchData;
         S = Segment_Functions;
-        XYZ = S.xyz2RotMoveStretch(XYZ,RMSD,H.FOV2/2);
+        XYZ = S.xyz2RotMoveStretch(XYZ,RMSD,RMSD.ObjectCenter);
         
         H.Patch_Object.XData = XYZ(:,1);
         H.Patch_Object.YData = XYZ(:,2);

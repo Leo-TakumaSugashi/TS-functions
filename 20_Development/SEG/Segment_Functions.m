@@ -4258,7 +4258,8 @@ classdef Segment_Functions
                 (0:size(objImage,1)-1)*objReso(2),...
                 (0:size(objImage,3)-1)*objReso(3));
             siz = size(X);
-            Center = (size(objImage)-1).*objReso /2;
+%             Center = (size(objImage)-1).*objReso /2;
+            Center = RotMovStretchData.ObjectCenter;
             Rxyz = obj.xyz2RotMoveStretch_Reverse(...
                 cat(2,X(:),Y(:),Z(:)),RotMovStretchData,Center);
             Xq = reshape(Rxyz(:,1),siz);
