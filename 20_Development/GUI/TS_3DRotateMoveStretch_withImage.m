@@ -82,7 +82,7 @@ H = getappdata(H.Figure,'Data');
 fgh = H.Figure;
 H.imageh.CData = GetSliceImage;
 if ispc
-    WinOnTop(fgh,true);
+%     WinOnTop(fgh,true);
 end
 
 %% Callback
