@@ -4247,12 +4247,20 @@ classdef Segment_Functions
             % objImage : objectImage (only 3D)
             % objReso : object Resolution [X Y Z]
             % RotMovStretchData : see also TS_3DRotateMoveStretch
-            % (nargin ==4) = cutting size from surface(meaned end of z
+            % (nargin ==4) = output size from surface(meaned end of z
             % size)
             %
             % Output
             % J = rotated and interpolated image
-
+            if nargin ==4
+                OutSize = size(objImage,3);
+            else
+                OutSize = varargin{1};
+                if ~isscalar(OutSize)
+                    error('Output size must be scalar')
+                end
+            end
+            
             [X,Y,Z] = meshgrid(...
                 (0:size(objImage,2)-1)*objReso(1),...
                 (0:size(objImage,1)-1)*objReso(2),...
@@ -4266,6 +4274,14 @@ classdef Segment_Functions
             Yq = reshape(Rxyz(:,2),siz);
             Zq = reshape(Rxyz(:,3),siz);
             J = interp3(X,Y,Z,single(objImage),Xq,Yq,Zq);
+            
+            if size(J,3)==OutSize
+                return
+            elseif size(J,3) > OutSize
+                J = J(:,:,1:OutSize);
+            else
+                J = padarray(J,[0, 0, OutSize-size(J,3)],0,'pre');
+            end
         end
         function J = Image2RotMovStretch_byScatteredInterpolant(obj,objImage,objReso,outSize,outReso,RotMovStretchData)
             InputAns = input('This Function is Toooo Late, Proceed?? Yes(y), [ No(n) ]?','%d');

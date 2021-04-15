@@ -571,7 +571,7 @@ setappdata(H.Figure,'Data',H)
         imobj = imresize3(Im2,NewSiz2);
 %         imobj = H.useImage2;
         Reso= H.NewReso2;
-        J = S.Image2RotMovStretch(imobj,Reso,RMSD);
+        J = S.Image2RotMovStretch(imobj,Reso,RMSD,size(H.useImage1,3));
         H.useImage2 = J;
         fprintf('Done...\n\n')
     end
