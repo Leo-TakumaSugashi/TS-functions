@@ -3927,8 +3927,11 @@ classdef Segment_Functions
             xyz = Rz*(Ry*(Rx*xyz));
             xyz = xyz';
             XYZ = xyz + OriginalCenter;
-
-            XYZ = XYZ - RotMovStretchData.Move;
+            
+            XYZ = XYZ - RotMovStretchData.Move; %%
+%             Shift = - abs(RotMovStretchData.Move(1:2));
+%             Shift(3) = RotMovStretchData.Move(3);
+%             XYZ = XYZ - Shift; %%
             newZ = interp1(RotMovStretchData.Stretch_ly,...
                 RotMovStretchData.Stretch_lx,...
                 XYZ(:,3),...  %% old is zdata
@@ -4280,7 +4283,11 @@ classdef Segment_Functions
             elseif size(J,3) > OutSize
                 J = J(:,:,1:OutSize);
             else
-                J = padarray(J,[0, 0, OutSize-size(J,3)],0,'pre');
+                if RotMovStretchData.Move(3) > 0
+                    J = padarray(J,[0, 0, OutSize-size(J,3)],0,'post');
+                else
+                    J = padarray(J,[0, 0, OutSize-size(J,3)],0,'pre');
+                end
             end
         end
         function J = Image2RotMovStretch_byScatteredInterpolant(obj,objImage,objReso,outSize,outReso,RotMovStretchData)
