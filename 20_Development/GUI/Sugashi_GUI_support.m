@@ -172,6 +172,10 @@ classdef Sugashi_GUI_support
            Mapsize = 256;
            Gamma = 1;
            [MAPs,xdata] = obj.create_MAPs(Mapsize,Gamma);
+           if strcmpi(ApplyColorType,'HSV_MAP')
+               MAPs = obj.Get_HSV_Colormap;
+           end
+           
            ydata = 1:size(MAPs,1);
            imh = imagesc(axh,MAPs,'XData',xdata,'YData',ydata);
            xlabel(axh,'Approximate Wavelength [nm]')
@@ -216,6 +220,9 @@ classdef Sugashi_GUI_support
                'Visible','off');
            if nargout==1
                varargout{1} = uih;
+           elseif nargout ==2
+               varargout{1} = uih;
+               varargout{2} = imh;
            end
            
            function WindowButtonFcn(FigureH,MouseData)
@@ -239,6 +246,9 @@ classdef Sugashi_GUI_support
                        [~,yinn] = min(abs(ydata - y)); 
                    case 'top'
                        yinn = size(MAPs,1);
+                   case 'HSV_MAP'
+                       MAPs = obj.Get_HSV_Colormap;
+                       [~,yinn] = min(abs(flip(ydata,2) - y)); 
                    otherwise
                        error('input value is not konwn...')        
                end
@@ -298,7 +308,12 @@ classdef Sugashi_GUI_support
         end
         
         function c = select_color(obj)
-            uih = obj.SpectrumColormapEditor;
+            [uih,imh] = obj.SpectrumColormapEditor('HSV_MAP');
+            imh.CData = flip(imh.CData,1);
+            imh.XData = 1:size(imh.CData,2);
+            imh.Parent.XLim = [1,size(imh.CData,2)];
+            axis(imh.Parent,'normal')
+            imh.Parent.XLabel.String = '';
             fgh = get(uih(6),'Parent');
             set(fgh,'CloseRequestFcn',@CloseREQUEST_Color)
             set(uih(6),'Visible','on');
@@ -319,7 +334,30 @@ classdef Sugashi_GUI_support
                 c = [];
                 delete(fgh)
             end
+                        
             waitfor(fgh)
+        end
+        
+        function MAP = Get_HSV_Colormap(~)
+            map = [...
+                    1 0 0 ;
+                    1 1 0;
+                    0 1 0;
+                    0 1 1;
+                    0 0 1;
+                    1 0 1;
+                    1 0 0;
+                    1 1 0];
+
+            map = interp2(map,1:3,linspace(1,size(map,1),1024)');
+
+            map0 = zeros(size(map));
+            map1 = ones(size(map));
+            MAP = cat(3,map1,map0,map,map1);
+            [x,y,z] = meshgrid(1:3,(1:1024)',permute(linspace(1,4,256+512),[1 3 2]));
+            MAP = interp3(MAP,x,y,z);
+            MAP = permute(MAP,[3 1 2]);
+            MAP = flip (MAP,1);
         end
         
         %% load Stack image to volume or 5
