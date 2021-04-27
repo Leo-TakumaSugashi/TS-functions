@@ -579,10 +579,10 @@ classdef Segment_GUI
           set(H.SEG_CheckSEGPoint,'Callback',@Callback_SEG_CheckSEGPoint)
           set(H.SEG_ConnectSEGPoint,'Callback',@Callback_SEG_ReSegment)          
           set(H.SEG_SeparateSEGPoint,'Callback',@Callback_SEG_ReSegment)
-          set(H.SEG_InptIDApply,'callback',@Callback_ApplyTimePdata)
-          if DimTF(4)==1
-              H.SEG_InptIDApply.Visible = 'off';
-          end
+          set(H.SEG_InptIDApply,'callback',@Callback_EditPdata)
+%           if DimTF(4)==1
+%               H.SEG_InptIDApply.Visible = 'off';
+%           end
           set(H.SEGEditor_WriteDataButton,'Callback',@Callback_WriteData2WS)
           set(H.SEGEditor_BranchAddEnd,'Callback',@Callback_SEG_BranchAdd)
           set(H.SEGEditor_BranchAddFirst,'Callback',@Callback_SEG_BranchAdd)
@@ -1282,26 +1282,34 @@ classdef Segment_GUI
               end          
           end  
           
-          function Callback_ApplyTimePdata(~,~)
-              [MIPType,~,NUM] = GetMIPOption;
-              NowTime = GetIndex_slider(H.Slider(2));
-              Pdata = obj.Segment.Pointdata;
-              Pdata = GetCurrentTimePdata(Pdata);
-              Data = H.Table_Pdata.Data;
-              for n = 1:size(Data,1)
-                  ID = Data{n,3};                    %'ID',...
-                  index = obj.SEGFcn.ID2Index(ID,cat(1,Pdata.ID));
-                  tind = 1:size(Pdata(index).Diameter,2);
-                  tind = and(tind>=NowTime,tind<=NowTime+NUM-1);
-                  Diam = obj.Image2projection(Pdata(index).Diameter(:,tind),MIPType,2);
-                  Diam = nanmean(Diam);
-                  Data{n,5} = Diam;%'Diameter',...
-                  Data{n,7} = Pdata(index).Length*pi*(Diam)^2 ; %'Volume'....
-              end 
-              set(H.Table_Pdata,'Data',Data)
+          function Callback_EditPdata(~,~)
+              try
+                  txt = eval(H.SEG_InptIDEdit.String);
+              catch err
+                  disp(err.message)
+                  return
+              end
+              
+              SEG = obj.Segment;
+              catID = cat(1,SEG.Pointdata.ID) > 0;
+              SEG.Pointdata = SEG.Pointdata(catID);
+              catID = cat(1,SEG.Pointdata.ID);
+              if isempty(txt)
+                  return
+              else
+                  IDs = txt;
+                  Columname = H.Table_Pdata.ColumnName;
+                  catID = H.Table_Pdata.Data(:,strcmpi(Columname,'ID'));                  
+                  catID = cell2mat(catID);
+                  NewData = H.Table_Pdata.Data;
+                  for k = 1:length(IDs)
+                      NewData{find(catID == IDs(k)),strcmpi(Columname,'Edit')} = true;
+                  end
+                  catEdit = cell2mat(NewData(:,strcmpi(Columname,'Edit')));
+                  NewData = cat(1,NewData(catEdit,:),NewData(~catEdit,:));
+                  H.Table_Pdata.Data = NewData;
+              end    
           end
-          
-          
           
           
           Reset_ImportBranchView
@@ -2412,7 +2420,7 @@ classdef Segment_GUI
               BeardID = [];
               if strcmpi(oh.Label,'Check Beard in View')                  
                   for n = 1:length(txh)
-                      chid = str2double(txh(n).String);
+                      chid = str2double(get(txh(n),'String'));
                       index = catID == chid;
                       Type = SEG.Pointdata(index).Type;
                       if strcmpi(Type,'End to Branch')

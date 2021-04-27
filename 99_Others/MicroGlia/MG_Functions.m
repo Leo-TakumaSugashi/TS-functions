@@ -683,6 +683,35 @@ classdef MG_Functions
         end
         
         %% support functions
+        function output = GetOppsiteMax(~,Input)
+            output = nan(1,ceil(length(Input)/2)+1);
+            for n = 1:length(output)
+                if or(n==1, n==length(output))
+                    output(n) = Input(n);
+                else
+                    output(n) = max(Input(n),Input(length(Input)+2-n));
+                end
+            end
+            
+        end
+        function RefLen = GetVesselsWallDistance(~,Refxyz,RefV)
+            Sf = Segment_Functions;
+            RefRadius = cat(1,RefV.Pointdata.Diameter)/2;
+            RefRadius = nanmax(RefRadius,1);
+            RefxyzV = cat(1,RefV.Pointdata.PointXYZ);
+            RefxyzV = (RefxyzV-1).*RefV.ResolutionXYZ;
+            RefFOV = (RefV.Size-1).*RefV.ResolutionXYZ;
+            RefLen = nan(size(Refxyz,1),1);
+            for n = 1:length(RefLen)    
+                [L,ind] = min(Sf.GetEachLength(RefxyzV,Refxyz(n,:),ones(1,3)),[],2);    
+                EdgeL = min(min(Refxyz(n,:)),min(RefFOV-Refxyz(n,:)));
+                if L < EdgeL
+                    RefLen(n) = L - RefRadius(ind);
+                else
+                    RefLen(n) = nan;
+                end 
+            end
+        end
         function SaveFigures_FormAnalysis(obj,output)
             %% See also, RyoT_Output_MG_Analysis
             SaveDir = [output.SaveDir filesep  output.NewDir];
