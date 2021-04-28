@@ -927,22 +927,31 @@ classdef Segment_Functions
             end
             % % Main
             NewPdata = NewSEG.Pointdata;
+            PFields = fieldnames(NewPdata(1));
             NewPdata(SegNum).ID = abs(NewPdata(SegNum).ID) * (-1);
             NewBranch = cat(1,ParentPdata.PointXYZ(Index,:),ParentPdata.Branch);
             NewBranch(isnan(NewBranch(:,1)),:) = [];
             Index = [1 ; sort(Index(:)) ; size(ParentPdata.PointXYZ,1)];
+            ydata = 1:size(ParentPdata.PointXYZ,1);
             EndID = max(abs(cat(1,NewSEG.Pointdata.ID)));
             for n = 1:length(Index)-1
-                cutIndex = Index(n):Index(n+1);
+%                 cutIndex = Index(n):Index(n+1);
+                cutIndex = and(ydata>=Index(n),ydata<=Index(n+1));
                 xyz = ParentPdata.PointXYZ(cutIndex,:);
                 NewPdata(end +1).PointXYZ = xyz;
+                for k = 1:length(PFields)
+                    if size(ParentPdata.PointXYZ,1)==size(ParentPdata.(PFields{k}),1)
+                        NewPdata(end).(PFields{k}) = ParentPdata.(PFields{k})(cutIndex,:);
+                    end
+                end
                 Branch   = obj.CheckBranch(xyz,NewBranch,NewSEG.ResolutionXYZ);
                 NewPdata(end).Branch = Branch;
-                NewPdata(end).Signal   = ParentPdata.Signal(cutIndex);
-                NewPdata(end).Noise    = ParentPdata.Noise(cutIndex);
-                NewPdata(end).Theta    = ParentPdata.Theta(cutIndex);
-                NewPdata(end).Diameter = ParentPdata.Diameter(cutIndex);
-                NewPdata(end).NewXYZ   = ParentPdata.NewXYZ(cutIndex,:);
+                NewPdata(end).OriginalPointXYZ = xyz;
+%                 NewPdata(end).Signal   = ParentPdata.Signal(cutIndex);
+%                 NewPdata(end).Noise    = ParentPdata.Noise(cutIndex);
+%                 NewPdata(end).Theta    = ParentPdata.Theta(cutIndex);
+%                 NewPdata(end).Diameter = ParentPdata.Diameter(cutIndex);
+%                 NewPdata(end).NewXYZ   = ParentPdata.NewXYZ(cutIndex,:);
                 if size(Branch,1) >=2
                     SegmentType = 'Branch to Branch';
                 elseif size(Branch,1) ==1 && ~max(isnan(Branch))
