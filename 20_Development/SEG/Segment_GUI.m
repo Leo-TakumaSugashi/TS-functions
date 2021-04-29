@@ -299,6 +299,7 @@ classdef Segment_GUI
                       data = rgbproj(data,'auto');
               end
             %% imh
+%               imh.CData = TS_GammaFilt(data,0.3);
               imh.CData = data;
               find_p = find(zidx);
               if (find_p(1)-find_p(end)) == 0
