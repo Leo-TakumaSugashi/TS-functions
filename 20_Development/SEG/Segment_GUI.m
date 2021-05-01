@@ -682,8 +682,9 @@ classdef Segment_GUI
 %                               AddRange = AddRange./Reso2Dview;
                               %% depth
                               AddNumel = ceil(AddRange(3));
+%                               AddNumel = 0;
                               Thickness = ceil(Maximum) - floor(Minimum)+1 + AddNumel;
-                              Slice = max(floor(Minimum)-1 - AddNumel,0);
+                              Slice = max(floor(Minimum)-1 - round(AddNumel/2),0);
                               H.Slider(1).Value = Slice/(znum-1);
                               MIPNUMH = H.SliceViewerApply.UserData;
                               MIPNUM = MIPNUMH(3);
