@@ -3933,7 +3933,8 @@ classdef Segment_Functions
 
             xyz = xyz - OriginalCenter;
             xyz = xyz';
-            xyz = Rz*(Ry*(Rx*xyz));
+%             xyz = Rz*(Ry*(Rx*xyz));
+            xyz = Rz\(Ry\(Rx\xyz));
             xyz = xyz';
             XYZ = xyz + OriginalCenter;
             
@@ -3941,13 +3942,16 @@ classdef Segment_Functions
 %             Shift = - abs(RotMovStretchData.Move(1:2));
 %             Shift(3) = RotMovStretchData.Move(3);
 %             XYZ = XYZ - Shift; %%
+            if strcmpi(RotMovStretchData.InterpType,'phcp')
+                RotMovStretchData.InterpType = 'pchip';
+            end
             newZ = interp1(RotMovStretchData.Stretch_ly,...
                 RotMovStretchData.Stretch_lx,...
                 XYZ(:,3),...  %% old is zdata
                 RotMovStretchData.InterpType);
             XYZ(:,3) = newZ;
         end
-
+        
 
 
         %% inpterpolation
@@ -4286,6 +4290,7 @@ classdef Segment_Functions
             Yq = reshape(Rxyz(:,2),siz);
             Zq = reshape(Rxyz(:,3),siz);
             J = interp3(X,Y,Z,single(objImage),Xq,Yq,Zq);
+                        
             
             if size(J,3)==OutSize
                 return
@@ -4296,6 +4301,74 @@ classdef Segment_Functions
                     J = padarray(J,[0, 0, OutSize-size(J,3)],0,'post');
                 else
                     J = padarray(J,[0, 0, OutSize-size(J,3)],0,'pre');
+                end
+            end
+        end
+        function [J,Xq,Yq,Zq] = Image2RotMovStretch_OnlyDepth(obj,objImage,objReso,RotMovStretchData,varargin)
+            %[J,Xq,Yq,Zq] = Image2RotMovStretch(obj,objImage,objReso,RotMovStretchData)
+            %[J,Xq,Yq,Zq] = Image2RotMovStretch(obj,objImage,objReso,RotMovStretchData,CutSize)
+            %
+            %Input :
+            % objImage : objectImage (only 3D)
+            % objReso : object Resolution [X Y Z]
+            % RotMovStretchData : see also TS_3DRotateMoveStretch
+            % (nargin ==4) = output size from surface(meaned end of z
+            % size)
+            %
+            % Output
+            % J = rotated and interpolated image
+            if nargin ==4
+                OutSize = size(objImage,3);
+            else
+                OutSize = varargin{1};
+                if ~isscalar(OutSize)
+                    error('Output size must be scalar')
+                end
+            end
+            
+            [X,Y,Z] = meshgrid(...
+                (0:size(objImage,2)-1)*objReso(1),...
+                (0:size(objImage,1)-1)*objReso(2),...
+                (0:size(objImage,3)-1)*objReso(3));
+            siz = size(X);
+%             Center = (size(objImage)-1).*objReso /2;
+%             Center = RotMovStretchData.ObjectCenter;
+            XYZ = cat(2,X(:),Y(:),Z(:));
+            if strcmpi(RotMovStretchData.InterpType,'phcp')
+                RotMovStretchData.InterpType = 'pchip';
+            end
+            newZ = interp1(RotMovStretchData.Stretch_ly,...
+                RotMovStretchData.Stretch_lx,...
+                XYZ(:,3),...  %% old is zdata
+                RotMovStretchData.InterpType);
+            XYZ(:,3) = newZ;
+            
+            
+            Rxyz = XYZ;
+            Xq = reshape(Rxyz(:,1),siz);
+            Yq = reshape(Rxyz(:,2),siz);
+            Zq = reshape(Rxyz(:,3),siz);
+            J = interp3(X,Y,Z,single(objImage),Xq,Yq,Zq);
+            
+            Padsiz = abs(round(RotMovStretchData.Move(3)/objReso(3)));
+%             if RotMovStretchData.Move(3)<0                
+%                 J = padarray(J,[0 0 Padsiz],0,'post');
+%             elseif RotMovStretchData.Move(3)>0                
+                J = padarray(J,[0 0 Padsiz],0,'pre');
+%             end
+            if size(J,3)==OutSize
+                return
+            elseif and(size(J,3) > OutSize,RotMovStretchData.Move(3)<0)
+                J = J(:,:,size(J,3)-OutSize+1:end);
+            elseif and(size(J,3) > OutSize,RotMovStretchData.Move(3)>=0)
+                J = J(:,:,1:OutSize);
+            else
+                if OutSize>size(J,3)
+                    if RotMovStretchData.Move(3) > 0
+                        J = padarray(J,[0, 0, OutSize-size(J,3)],0,'post');
+                    else
+                        J = padarray(J,[0, 0, OutSize-size(J,3)],0,'pre');
+                    end
                 end
             end
         end

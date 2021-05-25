@@ -389,6 +389,8 @@ classdef Segment_GUI
               DimSTR = {'1','2','3'};
           elseif and(DimTF(3)==1,DimTF(4)>1)
               DimSTR = {'4','4','4'};
+          else
+              DimSTR = {'3','3','3'};
           end
           
           childrenH = H.SliceViewerApply.UserData; 

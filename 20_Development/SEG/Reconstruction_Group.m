@@ -449,9 +449,18 @@ classdef Reconstruction_Group
                 BranchTextColor = [0 0.5 0 ];
                
                 p = plot3(axh,xyz(:,1),xyz(:,2),xyz(:,3),'*');
-                p.LineWidth = 2;
-                p.MarkerSize = 3;
-                p.Color = BranchColor;
+                if ~isempty(p)
+                    p.LineWidth = 2;
+                    p.MarkerSize = 3;
+                    p.Color = BranchColor;
+                else
+                    p = plot3(axh,0,0,0,'*');
+                end
+                
+%                 p = plot3(axh,xyz(:,1),xyz(:,2),xyz(:,3),'*');
+%                 p.LineWidth = 2;
+%                 p.MarkerSize = 3;
+%                 p.Color = BranchColor;
                 view(axh,3),
                 grid(axh,'on')
                 daspect(axh,ones(1,3))
