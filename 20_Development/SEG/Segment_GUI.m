@@ -1068,7 +1068,7 @@ classdef Segment_GUI
           function Callback_SEG_ReSegment(oh,~)              
               fprintf('############ ############ ############ \n')
               fprintf(['    '  oh.String '\n'])
-              ID = GetID_TablePdata_inEdit;              
+              ID = GetID_TablePdata_inEdit;
               try
                   if strcmpi(oh.String,'Connect')
                       % NewSEG = obj.ReSegment(obj.Segment,'Connect',{ID});
@@ -1078,14 +1078,16 @@ classdef Segment_GUI
                           ConnectForceType = '';
                       end
                       ConnectForceType = '-f';
+                        
                       NewSEG = obj.SEGFcn.Connect(obj.Segment,{ID},ConnectForceType);
+%                       keyboard
                   elseif strcmpi(oh.String,'Separate')
                       [SelectedID,separate_index] = check_Selected_Index;
                       if isempty(SelectedID) || isempty(separate_index)
                           error('Please Select one point at least.')
                       end
-%                       NewSEG = obj.ReSegment(obj.Segment,'Separate',SelectedID,separate_index);
-                      NewSEG = obj.SEGFcn.Separate(obj.Segment,SelectedID,separate_index);
+%                       NewSEG = obj.ReSegment(obj.Segment,'Separate',SelectedID,separate_index);                      
+                      NewSEG = obj.SEGFcn.Separate(obj.Segment,SelectedID,separate_index);                      
                   end
               catch err
                   fprintf(err.message)
@@ -2469,7 +2471,17 @@ classdef Segment_GUI
           
           set(H.MenuH.Panel3_CheckAllInView,'Callback',@Callback_CheckBeardInView)
          
-          
+          set(H.MenuH.Panel3_MaximumRenderingSize,'Callback',@Callback_MaximumRenderingSize)
+          function Callback_MaximumRenderingSize(oh,~)
+              
+              input = inputdlg('Input','Maximum Rendering Size',1,...
+                  {num2str(obj.MaximumRenderingSize)});
+              input = input{1};
+              input = eval(input);
+              input = round(input);
+              obj.MaximumRenderingSize = input;
+              set(oh,'Label',['Maximum Rendering Size : ' num2str(input)])              
+          end
           
           %% SEGview label
           for n = 1:length(H.MenuH.SEGviewLabel)
@@ -2703,6 +2715,9 @@ classdef Segment_GUI
 %          if size(obj.Image,4)==1
 %              uimh.Enable = 'off';
 %          end
+        %% Maximum Rendering size
+        MenuHandle.Panel3_MaximumRenderingSize = uimenu(MenuHandle.Panel3,...
+            'Label',['Maximum Rendering Size : ' num2str(obj.MaximumRenderingSize)]);
         %% for program editor...
           uimenu(MenuHandle.Sample,...
               'Label','print Object Fields','Callback',@Callback_printobj,...

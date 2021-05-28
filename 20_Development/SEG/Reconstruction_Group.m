@@ -874,6 +874,14 @@ classdef Reconstruction_Group
             CData=squeeze(xyz(4,:,:));     
         end
         function [FV,p] = SEGdiam2TubePatch(obj,SEG,varargin)
+            % [FV,p] = SEGdiam2TubePatch(SEG)
+            % [FV,p] = SEGdiam2TubePatch(SEG,CDataName)
+            % Input :
+            %       SEG : Segment data
+            %       CDataName : Color Data Name (Diameter, Length,etc,)
+            % Output "
+            %       FV : for patch data
+            %       p  : patch data handle
             if nargin==2
                 Fname = 'Diameter';
             else
@@ -916,6 +924,10 @@ classdef Reconstruction_Group
             end
             FV = surf2patch(X,Y,Z,CD,'triangles');
             TS_WaiteProgress(1)
+            figure,
+            p = patch(FV);
+            p.EdgeColor = 'none';
+            p.FaceColor = 'interp';
         end
         function fvx = create_patchfields(~)
             fvx.faces = [];

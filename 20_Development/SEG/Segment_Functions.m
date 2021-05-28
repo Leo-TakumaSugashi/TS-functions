@@ -627,7 +627,7 @@ classdef Segment_Functions
             [Startindex,SegmentType] = obj.Find_EndSEG(Pdata);
 %             catID = cat(1,Pdata.ID);
 %             OldMaxID = max(abs(catID));
-            NewPdata = SEG.Pointdata(Startindex);
+            NewPdata = Pdata(Startindex);
             sort_table = true(1,length(Ind));
             sort_table(Startindex) = false;
             
@@ -639,11 +639,15 @@ classdef Segment_Functions
             Class_check = cell(1,length(Ind));
             Class_check{1} = Pdata(Startindex).Class;
             BeforeIndex = Startindex;
+%             Pdata(Startindex) = [];
+%             NewPdata(Startindex) = [];
             for n = 1:length(Ind)-1
                 [NearIndex,TF_flip_Parent,TF_flip_Foward,ErrorString] ...
                 = obj.FindNearestID(NewPdata.PointXYZ,Pdata,sort_table,SEG.ResolutionXYZ);
                 NearIndex = NearIndex(1);
                 NextPdata = Pdata(NearIndex);
+%                 Pdata(NearIndex) = [];
+%                 NewPdata(NearIndex) = [];
                 sort_table(NearIndex) = false;
                 if ~isempty(ErrorString)
                     warning(['Force Connecting : ' num2str(ForceConnecting)])
@@ -786,7 +790,9 @@ classdef Segment_Functions
             NewPdata.Length   = sum(obj.xyz2plen(xyz,SEG.ResolutionXYZ));
 %             NewPdata.ID       = max(max(abs(cat(1,NewPdata.ID))),OldMaxID)+1
             NewPdata.Class    = output_class;%'Parent';
-            NewPdata.MEMO     = ['Paired:' num2str(Ind)];
+            
+            ID = cat(2,SEG.Pointdata(Ind).ID);
+            NewPdata.MEMO     = ['Paired:' num2str(ID)];
         end
         function NewSEG = Connect_Edge2Nearest(obj,SEG,xyz,IDobj)
             % NewSEG = Connect_Edge2Nearest(obj,SEG,xyz,toID)
