@@ -2661,9 +2661,9 @@ classdef Segment_Functions
             else
                 XYZ = varargin{1};
             end
-            Xtf = XYZ(:,1,:) == xyz(1);
-            Ytf = XYZ(:,2,:) == xyz(2);
-            Ztf = XYZ(:,3,:) == xyz(3);
+            Xtf = single(XYZ(:,1,:)) == single(xyz(1));
+            Ytf = single(XYZ(:,2,:)) == single(xyz(2));
+            Ztf = single(XYZ(:,3,:)) == single(xyz(3));
             index = and( and( Xtf, Ytf ), Ztf);
         end
         function [IDs,Dist,SeparateXYZ] = Find_NearSegment_xyz(obj,xyz,Minimum)
@@ -3481,7 +3481,7 @@ classdef Segment_Functions
             end
         end
 
-         %% Sphere Fitting (Ref. Alan Jennings, University of Dayton)
+        %% Sphere Fitting (Ref. Alan Jennings, University of Dayton)
         function [Radius,Center] = SphereFit(~,X)
            % [Radius,Center] = SphereFit(~,XYZ)
            % Original function is SphereFitByLeastSquares by Alan Jennings, University of Dayton
@@ -4260,6 +4260,21 @@ classdef Segment_Functions
                     [S_test] = obj.BsplineFunc(S_test,0,OutPutSiz,[],'Bezier');
                 end
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            end
+        end
+        
+        function NewXYZ = InterpNaN(obj,xyz)
+            NewXYZ = xyz;
+            for n = 1:size(xyz,2)
+                L = xyz(:,n);
+                if sum(isnan(L))==0
+                    continue
+                end                    
+                xdata = 1:length(L);                
+                Lin = L(~isnan(L));
+                Xin = xdata(~isnan(L));
+                NewL = interp1(Xin,Lin,xdata,'pchip');
+                NewXYZ(:,n) = NewL;
             end
         end
 
