@@ -57,6 +57,19 @@ fgh = figure('Position',[50 70 950 750],...
     end
 setappdata(fgh,'savefgh',savefgh)
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% uimenu(fgh,'Label','File')
+% uimenu(fgh,'Label','Edit')
+% uimenu(fgh,'Label','Image Processing')
+% uimenu(fgh,'Label','View')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
 % % Axes
 axh = axes('Position',[.005 .05 .8 .9]);
     imh = imagesc(Image(:,:,1));
