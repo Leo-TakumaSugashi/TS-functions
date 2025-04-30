@@ -1,10 +1,3 @@
-<style>
-  code {
-    font-family: 'Terminus', monospace;
-    font-size: 22pt;
-  }
-</style>
-
 ---
 # **A set of MATLAB functions aimed at automatically evaluating vascular structures imaged by 2-photon laser scanning fluorescence microscopy(2PLSM).**
 ---
