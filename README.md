@@ -174,4 +174,4 @@ Special thanks to Professor Masamoto and the faculty for their valuable input th
 
 For inquiries, please contact: **oshou.0131@gmail.com**
 
-**Note:** Please include **"Functions-github"** in the subject line of your email.
+**Note:** Please include **"TS-Functions/github"** in the subject line of your email.
