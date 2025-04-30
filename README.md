@@ -11,11 +11,12 @@ One of the micro-imaging characteristics of the *In vivo* captured by the 2PLSM 
 *I will also provide a Viewer/Editor application for this purpose.*
 
 ## Required environment (programming language version, libraries, etc.)
-<pre>Software:  
+<pre>
+Software:  
     MATLAB (>R2022a)  
-    ├── Image Processing Toolbox     
-    └── Parallel Computing Toolbox        
-</pre>               
+    ├── Image Processing Toolbox   
+    └── Parallel Computing Toolbox      
+               
 Hardware: 
   Minimum specification 
     CPU: Greater than 4Core. 
@@ -27,33 +28,34 @@ Hardware:
 
   *Depends on the total number of pixels in the volume image.*
   *1024*1024*20 with 16GB of memory works on a Linux environment, but not on Windows 11.*
-　
+<pre>　
 ## Installation procedure
 Add all Directories, including subfolders, to the path.
 
-## Basic usage and execution
-## Step 0 : Image and Resolution 
-
-### If no sample is available.
+## Basic usage and execution 
+<pre>
+## Step 0 : Image and Resolution  
+## If no sample is available.  \
 Sf = Segment_Functions;
 [SEG,mImage,Reso] = Sf.make_sample
 
-
-### If you have images you would like to analyze.
-*Please prepare the image and resolution information.*
+## If you have images you would like to analyze.
+## Please prepare the image and resolution information.
 Image : [n x m x k] matrix.
 Reso  : Resolution. vector. [Y,X,Z]; if input 2D image, Z should be ***1***.
 
 ## Step 1 : pre-processing 
- mImage = TSmedfilt2(Image,[3 3]);
- *If there is any other recommended denoising process, please apply it.*
+mImage = TSmedfilt2(Image,[3 3]);
+## ## *If there is any other recommended denoising process, please apply it.
 
 ## Step 2 : check Image
 DimFive(mImage,Reso)
-[DimFive sample1](https://sugashi-phd.com/images/DimFive_sample.png)
 
-
-
+<div style="display: flex; gap: 10px; ">
+<img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 100px; width:100px;"/>
+<img src="https://sugashi-phd.com/images/DimFive_sample2.png" alt="DimFive_sample" style="height: 
+100px; width:100px;"/>
+</div>
 SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(Image,Reso,"FWHM",SEG,'MaximumStep',128);
 
   SEG = TS_AutoAnalysisDiam_SEG(fImage,Reso,ThresholdType,SEG,{Options...})
