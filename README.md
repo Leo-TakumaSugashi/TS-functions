@@ -1,7 +1,7 @@
 <style>
   code {
     font-family: 'Terminus', monospace;
-    font-size: 1.1rem ;
+    font-size: 14pt;
   }
 </style>
 
@@ -40,32 +40,39 @@ Add all Directories, including subfolders, to the path.
 
 ## Basic usage and execution 
 ### Step 0: Load Image and Define Resolution
-### If no sample is available.  \
-Sf = Segment_Functions; \
-[SEG,mImage,Reso] = Sf.make_sample \
->> go to Step 3 \
+### If no sample is available.  
+<pre><code>
+Sf = Segment_Functions;  
+[SEG,mImage,Reso] = Sf.make_sample 
+</code><pre>
+>> go to Step 3 
 
 ### If you have images you would like to analyze.
 ### Please prepare the image and resolution information.
-Image : [n x m x k] matrix. \
-Reso  : Resolution. vector. [X,Y,Z]; if input 2D image, Z should be ***1***. \
+Image : [n x m x k] matrix.   
+Reso  : Resolution. vector. [X,Y,Z]; if input 2D image, Z should be ***1***.  
 
 ### Step 1 : Pre-processing 
-mImage = TSmedfilt2(Image,[3 3]); \
+<pre><code>
+mImage = TSmedfilt2(Image,[3 3]);  
+</code></pre>
 ### *If there is any other recommended denoising process, please apply it.*
 
 ### Step 2 : Image Inspection
-DimFive(mImage,Reso) \
-<div style="display: flex; gap: 10px; ">
-    <img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 50%; width:50%;"/>
-    <img src="https://sugashi-phd.com/images/DimFive_smaple2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
-</div>
+<pre><code>
+DimFive(mImage,Reso) 
+</code></pre>
+
+<img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 50%; width:50%;"/>
+<img src="https://sugashi-phd.com/images/DimFive_smaple2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
+<figcaption>Fig. 1. 3D slice viewer (top), 5-dimensional data displayed as a multi-color view (bottom)</figcaption>
 
 ### Step 3 : ***Automated Segment-wise Diameter Analysis of the Vascular Tree***
+<pre><code>
 SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);
-
+</code></pre>
 *help of Function.*
-<pre>
+<pre style="font-size:12pt">
   SEG = TS_AutoAnalysisDiam_SEG(fImage,Reso,ThresholdType,SEG,{Options...})
    Option are like below,,
   SEG = TS_AutoAnalysisDiam_SEG(...,'ID','all',...
@@ -108,9 +115,13 @@ SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);
 </pre>
 
 ### Step 4: Result Verification
-### MIP Viewer
+
+<pre><code>
 TS_3dmipviewer(mImage,Reso); 
+</code></pre>
 <img src="https://sugashi-phd.com/images/mipviewer.png" alt="mipviewer" style="height: 70%; width:70%;"/>
+<figcaption>Fig. 2.  MIP Viewer</figcaption>
+
 
 ### 3D Reconstruction from Polygons and Surfaces
 <pre><code>
