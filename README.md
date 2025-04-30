@@ -1,7 +1,7 @@
 <style>
   code {
     font-family: 'Terminus', monospace;
-    font-size: 14pt;
+    font-size: 22pt;
   }
 </style>
 
@@ -49,7 +49,7 @@ Sf = Segment_Functions;
 
 ### If you have images you would like to analyze.
 ### Please prepare the image and resolution information.
-Image : [n x m x k] matrix.   
+Image : [n , m , k] matrix.   
 Reso  : Resolution. vector. [X,Y,Z]; if input 2D image, Z should be ***1***.  
 
 ### Step 1 : Pre-processing 
@@ -68,12 +68,9 @@ DimFive(mImage,Reso)
 <figcaption>Fig. 1. 3D slice viewer (top), 5-dimensional data displayed as a multi-color view (bottom)</figcaption>
 
 ### Step 3 : ***Automated Segment-wise Diameter Analysis of the Vascular Tree***
-<pre><code>
-SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);
-</code></pre>
-*help of Function.*
-<pre style="font-size:12pt">
-  SEG = TS_AutoAnalysisDiam_SEG(fImage,Reso,ThresholdType,SEG,{Options...})
+<pre><code>SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);</code></pre>
+*Help of Function.*
+<pre style="font-size:20pt">SEG = TS_AutoAnalysisDiam_SEG(fImage,Reso,ThresholdType,SEG,{Options...})
    Option are like below,,
   SEG = TS_AutoAnalysisDiam_SEG(...,'ID','all',...
                                'SNRLim',3,'SNRUnit','a.u.',...
@@ -115,17 +112,13 @@ SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);
 </pre>
 
 ### Step 4: Result Verification
-
-<pre><code>
-TS_3dmipviewer(mImage,Reso); 
-</code></pre>
+<pre><code>TS_3dmipviewer(mImage,Reso); </code></pre>
 <img src="https://sugashi-phd.com/images/mipviewer.png" alt="mipviewer" style="height: 70%; width:70%;"/>
 <figcaption>Fig. 2.  MIP Viewer</figcaption>
-
-
+  
+    
 ### 3D Reconstruction from Polygons and Surfaces
-<pre><code>
-R = Sugashi_ReconstructGroup; 
+<pre><code>R = Sugashi_ReconstructGroup; 
 [Fv,p] =R.SEGdiam2TubePatch(SEG);
 figure,p = patch(Fv);
 view(3)
@@ -136,25 +129,49 @@ camh = camlight(gca);
 box on
 axis tight
 </code></pre>
-
+<img src="https://sugashi-phd.com/images/Reconstruct_pipe.png" alt="reconst_pipe">
+<figcaption>Fig. 3.  3D-Resonstruction</figcaption>
+  
 ---
 ## Step 5: Verification, Data Cleaning, and Vessel Classification
 At this final step, the results of the automatically analyzed vascular segments are reviewed for accuracy.  
 Erroneous or inconsistent data are removed through a data cleaning process.  
 Finally, the blood vessels are classified based on predefined criteria such as diameter, branching pattern, or anatomical region.
-<pre><code>
-SegEditor_v2025(Image,Reso,SEG)
+<pre><code>SegEditor_v2025(Image,Reso,SEG)
 </code></pre>
-<div style="display: flex; gap: 10px; ">
-    <img src="https://sugashi-phd.com/images/SegEditor_Panel1.png" alt="DimFive_sample" style="height: 50%; width:50%;"/><br>
-    <img src="https://sugashi-phd.com/images/SegEditor_Panel2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
-    <img src="https://sugashi-phd.com/images/SegEditor_Panel3.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
-</div>
+<img src="https://sugashi-phd.com/images/SegEditor_tmp.png" alt="SegEditor"/>
 
 ##Project structure
 
-##License information
+## License
 
-##How to contribute (how to report an Issue, how to create a Pull Request, etc.)
+This project is released for academic, research, and non-commercial educational purposes only.  
+For any other usage, please contact the author.
 
-##Contact Information
+## Acknowledgements
+
+This work would not have been possible without the support and insight of my colleagues and mentors. 
+Special thanks to Professor Masamoto and the faculty for their valuable input throughout the development.
+
+
+## References
+
+1. **Takuma Sugashi**, Hiroya Yuki, Tomoya Niizawa, Hiroyuki Takuwa, Iwao Kanno, Kazuto Masamoto.  
+   *Three-dimensional microvascular network reconstruction from in vivo images with adaptation of the regional inhomogeneity in the signal-to-noise ratio*. Microcirculation, 2021.
+
+2. **Takuma Sugashi**, Tomoya Niizawa, Hiroki Suzuki, Hiroyuki Takuwa, Miyuki Unekawa, Yutaka Tomita, Iwao Kanno, Kazuto Masamoto.  
+   *Time Series Tracking of Cerebral Microvascular Adaptation to Hypoxia and Hyperoxia Imaged with Repeated in vivo Two-Photon Microscopy*. Adv Exp Med Biol. Springer, 2020.
+
+3. Hiroki Suzuki, **Takuma Sugashi**, Hiroshi Takeda, Hiroyuki Takuwa, Iwao Kanno, Kazuto Masamoto.  
+   *Error Evaluation for Automated Diameter Measurements of Cerebral Capillaries Captured with Two-Photon Laser Scanning Fluorescence Microscopy*. Adv Exp Med Biol. Springer, 2020.
+
+4. **Takuma Sugashi**, Yoshihara K, Kawaguchi H, Takuwa H, Ito H, Kanno I, Yamada Y, Masamoto K.  
+   *Automated image analysis for diameters and branching points of cerebral penetrating arteries and veins captured with two-photon microscopy*. Adv Exp Med Biol. Springer, 812:209–215, 2014.
+
+  
+
+## Contact
+
+For inquiries, please contact: **oshou.0131@gmail.com**
+
+**Note:** Please include **"Functions-github"** in the subject line of your email.
