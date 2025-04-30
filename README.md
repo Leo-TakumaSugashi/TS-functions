@@ -44,7 +44,7 @@ Add all Directories, including subfolders, to the path.
 <pre><code>
 Sf = Segment_Functions;  
 [SEG,mImage,Reso] = Sf.make_sample 
-</code><pre>
+</code></pre>
 >> go to Step 3 
 
 ### If you have images you would like to analyze.
