@@ -1,3 +1,10 @@
+<style>
+  code {
+    font-family: 'Terminus', monospace;
+    font-size: 1.1rem ;
+  }
+</style>
+
 ---
 # **A set of MATLAB functions aimed at automatically evaluating vascular structures imaged by 2-photon laser scanning fluorescence microscopy(2PLSM).**
 ---
@@ -51,7 +58,7 @@ mImage = TSmedfilt2(Image,[3 3]); \
 DimFive(mImage,Reso) \
 <div style="display: flex; gap: 10px; ">
     <img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 50%; width:50%;"/>
-    <img src="https://sugashi-phd.com/images/DimFive_sample2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
+    <img src="https://sugashi-phd.com/images/DimFive_smaple2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
 </div>
 
 ### Step 3 : ***Automated Segment-wise Diameter Analysis of the Vascular Tree***
@@ -106,7 +113,7 @@ TS_3dmipviewer(mImage,Reso);
 <img src="https://sugashi-phd.com/images/mipviewer.png" alt="mipviewer" style="height: 70%; width:70%;"/>
 
 ### 3D Reconstruction from Polygons and Surfaces
-<pre><code>'''matlab
+<pre><code>
 R = Sugashi_ReconstructGroup; 
 [Fv,p] =R.SEGdiam2TubePatch(SEG);
 figure,p = patch(Fv);
@@ -117,17 +124,21 @@ p.FaceColor = 'interp';
 camh = camlight(gca);
 box on
 axis tight
-'''</code></pre>
+</code></pre>
 
 ---
 ## Step 5: Verification, Data Cleaning, and Vessel Classification
 At this final step, the results of the automatically analyzed vascular segments are reviewed for accuracy.  
 Erroneous or inconsistent data are removed through a data cleaning process.  
 Finally, the blood vessels are classified based on predefined criteria such as diameter, branching pattern, or anatomical region.
-
+<pre><code>
 SegEditor_v2025(Image,Reso,SEG)
-
-
+</code></pre>
+<div style="display: flex; gap: 10px; ">
+    <img src="https://sugashi-phd.com/images/SegEditor_Panel1.png" alt="DimFive_sample" style="height: 50%; width:50%;"/><br>
+    <img src="https://sugashi-phd.com/images/SegEditor_Panel2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
+    <img src="https://sugashi-phd.com/images/SegEditor_Panel3.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
+</div>
 
 ##Project structure
 
