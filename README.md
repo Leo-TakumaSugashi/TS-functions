@@ -1,5 +1,5 @@
 ---
-### **A set of MATLAB functions aimed at automatically evaluating vascular structures imaged by 2-photon laser scanning fluorescence microscopy(2PLSM).**
+# **A set of MATLAB functions aimed at automatically evaluating vascular structures imaged by 2-photon laser scanning fluorescence microscopy(2PLSM).**
 ---
 
 ## Description
@@ -11,8 +11,7 @@ One of the micro-imaging characteristics of the *In vivo* captured by the 2PLSM 
 *I will also provide a Viewer/Editor application for this purpose.*
 
 ## Required environment (programming language version, libraries, etc.)
-<pre>
-Software:  
+<pre>Software:  
     MATLAB (>R2022a)  
     ├── Image Processing Toolbox   
     └── Parallel Computing Toolbox      
@@ -28,36 +27,38 @@ Hardware:
 
   *Depends on the total number of pixels in the volume image.*
   *1024*1024*20 with 16GB of memory works on a Linux environment, but not on Windows 11.*
-<pre>　
+</pre>　
 ## Installation procedure
 Add all Directories, including subfolders, to the path.
 
 ## Basic usage and execution 
-<pre>
-## Step 0 : Image and Resolution  
-## If no sample is available.  \
-Sf = Segment_Functions;
-[SEG,mImage,Reso] = Sf.make_sample
+### Step 0: Load Image and Define Resolution
+### If no sample is available.  \
+Sf = Segment_Functions; \
+[SEG,mImage,Reso] = Sf.make_sample \
+>> go to Step 3 \
 
-## If you have images you would like to analyze.
-## Please prepare the image and resolution information.
-Image : [n x m x k] matrix.
-Reso  : Resolution. vector. [Y,X,Z]; if input 2D image, Z should be ***1***.
+### If you have images you would like to analyze.
+### Please prepare the image and resolution information.
+Image : [n x m x k] matrix. \
+Reso  : Resolution. vector. [X,Y,Z]; if input 2D image, Z should be ***1***. \
 
-## Step 1 : pre-processing 
-mImage = TSmedfilt2(Image,[3 3]);
-## ## *If there is any other recommended denoising process, please apply it.
+### Step 1 : Pre-processing 
+mImage = TSmedfilt2(Image,[3 3]); \
+### *If there is any other recommended denoising process, please apply it.*
 
-## Step 2 : check Image
-DimFive(mImage,Reso)
-
+### Step 2 : Image Inspection
+DimFive(mImage,Reso) \
 <div style="display: flex; gap: 10px; ">
-<img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 100px; width:100px;"/>
-<img src="https://sugashi-phd.com/images/DimFive_sample2.png" alt="DimFive_sample" style="height: 
-100px; width:100px;"/>
+    <img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 50%; width:50%;"/>
+    <img src="https://sugashi-phd.com/images/DimFive_sample2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
 </div>
-SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(Image,Reso,"FWHM",SEG,'MaximumStep',128);
 
+### Step 3 : ***Automated Segment-wise Diameter Analysis of the Vascular Tree***
+SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);
+
+*help of Function.*
+<pre>
   SEG = TS_AutoAnalysisDiam_SEG(fImage,Reso,ThresholdType,SEG,{Options...})
    Option are like below,,
   SEG = TS_AutoAnalysisDiam_SEG(...,'ID','all',...
@@ -68,9 +69,9 @@ SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(Image,Reso,"FWHM",SEG,'MaximumStep',128
                                'Progressbar','off',...
                                'ForceParfor','on');
   
-  fImage        : just medianfiltered raw-Image
+  fImage        : Just medianfiltered raw-Image
   Reso          : Resolution(X,Y,Z) as Input of "fImage", % um/pix.
-  ThresholdType : {sp5, sp8, photo count, pmt, ..}*
+  ThresholdType : {sp5, sp8, photo count, pmt, fwhm, ..}*
   SEG           : output of TS_AutoSegment_loop and
                    **Segment_Function.set_Segment(SEG,'f')
   
@@ -97,19 +98,16 @@ SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(Image,Reso,"FWHM",SEG,'MaximumStep',128
    
    see alo so , Sugashi_AutoAnalysisDiam, TS_AutoSEG_mex, Segment_Functions
   TS_AutoAnalysisDiam_AddAdjPreFWHM_perSlice  Group...
+</pre>
 
+### Step 4: Result Verification
+### MIP Viewer
+TS_3dmipviewer(mImage,Reso); 
+<img src="https://sugashi-phd.com/images/mipviewer.png" alt="mipviewer" style="height: 70%; width:70%;"/>
 
-
-
-
-
-
-
-
-
-TS_3dmipviewer(Image,Reso);
-R = Sugashi_ReconstructGroup;
-
+### 3D Reconstruction from Polygons and Surfaces
+<pre><code>'''matlab
+R = Sugashi_ReconstructGroup; 
 [Fv,p] =R.SEGdiam2TubePatch(SEG);
 figure,p = patch(Fv);
 view(3)
@@ -119,8 +117,13 @@ p.FaceColor = 'interp';
 camh = camlight(gca);
 box on
 axis tight
+'''</code></pre>
 
-
+---
+## Step 5: Verification, Data Cleaning, and Vessel Classification
+At this final step, the results of the automatically analyzed vascular segments are reviewed for accuracy.  
+Erroneous or inconsistent data are removed through a data cleaning process.  
+Finally, the blood vessels are classified based on predefined criteria such as diameter, branching pattern, or anatomical region.
 
 SegEditor_v2025(Image,Reso,SEG)
 
