@@ -1,0 +1,87 @@
+function [M,expectS] = TS_GetBackgroundValue_saved201911129(im)
+% TS_GetBackgroundValue(im)
+% if islogical im
+% output = false
+% 
+% if Maximum == Minimum
+% output = Maximum
+% 
+% else
+% level = graythresh(im); offcuz, After Normalized...
+% im = im(im < level);
+% Then, Smoothing Histgram for Ragh mode value...
+%
+%
+% edit help, 2019,08,10, by Sugashi
+% Add Expect Signal, 2019, Oct. 9th, by Sugashi,
+
+
+IM = im;
+if numel(im)<1
+    M = nan;
+    expectS = nan;
+    return
+elseif numel(im) <= 3
+    M = mode(IM(IM<max(IM(:))));
+    expectS = max(im(:));
+    return
+end
+    
+
+
+try
+if islogical(IM)
+    M = false;
+    expectS = true;
+    return
+end
+im = double(im);
+Maximum = max(im(:));
+Minimum = min(im(:));
+if Maximum == Minimum || isnan(Maximum) 
+    M = Maximum;
+    expectS = Maximum;
+    return
+end
+Nim = (im - Minimum) / (Maximum - Minimum);
+Level = graythresh(Nim);
+expectS = im(Nim>Level); %% version Oct.19,
+im = im(Nim <= Level);
+if isempty(im)
+    M = nan;
+    expectS = nan;
+    return
+elseif numel(im) <= 3
+    M = mode(IM(IM<max(IM(:))));
+    expectS = max(im(:));
+    return
+end    
+Maximum = max(im(:));
+BIN = min(Maximum-Minimum,256);
+[h,x] = hist(round(im(:)),linspace(Minimum,Maximum,BIN));
+[~,ind] = findpeaks(h);
+if numel(ind)<3
+    [~,ind] = max(h);
+    ind = ind(1);
+else
+    ind = mean(diff(ind(1:3)));
+end
+wid_siz = round(ind/2);
+wid_siz = wid_siz + (ceil(wid_siz/2)==floor(wid_siz/2));
+wid_siz = max(wid_siz,3);
+h = TS_MovingAverage(h,wid_siz);
+[~,ind] = max(h);
+M =feval(class(IM), x(ind));
+expectS = mean(expectS);
+catch err
+    % almost ..Warning: Data set must contain at least 3 samples. 
+%     disp(mfilename)
+%     warning(err.message)
+%     M = mode(IM(IM<Maximum));
+    M = Minimum;
+    expectS = Maximum;
+    if isempty(M)
+        M = nan;
+    end
+    
+end

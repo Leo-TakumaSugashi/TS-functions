@@ -1,0 +1,170 @@
+---
+# **A set of MATLAB functions aimed at automatically evaluating vascular structures imaged by 2-photon laser scanning fluorescence microscopy(2PLSM).**
+---
+
+## Description
+One of the micro-imaging characteristics of the *In vivo* captured by the 2PLSM is that the resolution in the planar and optical axis directions are different. In addition, there are effects of light scattering by cells and tissues. **AND SIMPLY TOO MANY BLOOD VESSELS!**
+
+## Purpose
+**Automated quantitative evaluation of three-dimensional (also two-dimensional) vascular networks.**
+*Actual images require visual confirmation at intermediate steps, taking into account SN, influence of other tissues, etc.*
+*I will also provide a Viewer/Editor application for this purpose.*
+
+## Required environment (programming language version, libraries, etc.)
+<pre>Software:  
+    MATLAB (>R2022a)  
+    ├── Image Processing Toolbox   
+    └── Parallel Computing Toolbox      
+               
+Hardware: 
+  Minimum specification 
+    CPU: Greater than 4Core. 
+    Memory : Greater than 32GB.
+
+  Recommended 
+    CPU   : 8Core/Threds, 3GHz or higher.
+    Memory:  64GB or more.
+
+  *Depends on the total number of pixels in the volume image.*
+  *1024*1024*20 with 16GB of memory works on a Linux environment, but not on Windows 11.*
+</pre>　
+## Installation procedure
+Add all Directories, including subfolders, to the path.
+
+## Basic usage and execution 
+### Step 0: Load Image and Define Resolution
+### If no sample is available.  
+<pre><code>
+Sf = Segment_Functions;  
+[SEG,mImage,Reso] = Sf.make_sample 
+</code></pre>
+>> go to Step 3 
+
+### If you have images you would like to analyze.
+### Please prepare the image and resolution information.
+Image : [n , m , k] matrix.   
+Reso  : Resolution. vector. [X,Y,Z]; if input 2D image, Z should be ***1***.  
+
+### Step 1 : Pre-processing 
+<pre><code>
+mImage = TSmedfilt2(Image,[3 3]);  
+</code></pre>
+### *If there is any other recommended denoising process, please apply it.*
+
+### Step 2 : Image Inspection
+<pre><code>
+DimFive(mImage,Reso) 
+</code></pre>
+
+<img src="https://sugashi-phd.com/images/DimFive_sample.png" alt="DimFive_sample" style="height: 50%; width:50%;"/>
+<img src="https://sugashi-phd.com/images/DimFive_smaple2.png" alt="DimFive_sample2" style="height: 50%; width:50%;"/>
+<figcaption>Fig. 1. 3D slice viewer (top), 5-dimensional data displayed as a multi-color view (bottom)</figcaption>
+
+### Step 3 : ***Automated Segment-wise Diameter Analysis of the Vascular Tree***
+<pre><code>SEG = TS_AutoAnalysisDiam_SEG_v2024Alpha(mImage,Reso,"FWHM",SEG);</code></pre>
+*Help of Function.*
+<pre style="font-size:20pt">SEG = TS_AutoAnalysisDiam_SEG(fImage,Reso,ThresholdType,SEG,{Options...})
+   Option are like below,,
+  SEG = TS_AutoAnalysisDiam_SEG(...,'ID','all',...
+                               'SNRLim',3,'SNRUnit','a.u.',...
+                               'LineLength',40,...
+                               'NoiseType','Slice',...
+                               'MeasureType','All',...
+                               'Progressbar','off',...
+                               'ForceParfor','on');
+  
+  fImage        : Just medianfiltered raw-Image
+  Reso          : Resolution(X,Y,Z) as Input of "fImage", % um/pix.
+  ThresholdType : {sp5, sp8, photo count, pmt, fwhm, ..}*
+  SEG           : output of TS_AutoSegment_loop and
+                   **Segment_Function.set_Segment(SEG,'f')
+  
+  Options.... default
+              ID = '>0'; %% must Be ">0",'all',or numeric
+              Progressbar ='on'; %% on or off
+              SNRLim = 2; %%
+              SNRUnit = 'dB'; %% dB or a.u., will be calicualte
+              LineLength = 70; % Numeric,[um],
+              NoiseType = 'Eachpoint'; 
+                     EachPoint, Slice(if siz(3)==1), Numeric(==Constant)
+              MeasureType = 'LineRot'; 
+                            {'LineRot','NormLine','Elliptic','Hybrid','Speed','All'}
+                             Hybrid =='LineRot&Elliptic', Speed =='NormLine&Elliptic'
+              ForceParfor = 'on'; %% on or off
+              MaximumStep = 512; % Numeric,
+   
+  Compensation by SNR (this value is for PMT or Photon Count ver. Image)
+  th = TS_GetThreshold_sp5_v2019(S,N);
+  th = TS_GetThreshold_sp8(S);
+ 
+  ROI as rotate line profile is defined below length as default.
+  Len = 70 ; % um , is xy-plane.
+   
+   see alo so , Sugashi_AutoAnalysisDiam, TS_AutoSEG_mex, Segment_Functions
+  TS_AutoAnalysisDiam_AddAdjPreFWHM_perSlice  Group...
+</pre>
+
+### Step 4: Result Verification
+<pre><code>TS_3dmipviewer(mImage,Reso); </code></pre>
+<img src="https://sugashi-phd.com/images/mipviewer.png" alt="mipviewer" style="height: 70%; width:70%;"/>
+<figcaption>Fig. 2.  MIP Viewer</figcaption>
+  
+    
+### 3D Reconstruction from Polygons and Surfaces
+<pre><code>R = Sugashi_ReconstructGroup; 
+[Fv,p] =R.SEGdiam2TubePatch(SEG);
+figure,p = patch(Fv);
+view(3)
+daspect(ones(1,3))
+p.EdgeColor = 'none';
+p.FaceColor = 'interp';
+camh = camlight(gca);
+box on
+axis tight
+</code></pre>
+<img src="https://sugashi-phd.com/images/Reconstruct_pipe.png" alt="reconst_pipe">
+<figcaption>Fig. 3.  3D-Resonstruction</figcaption>
+  
+---
+## Step 5: Verification, Data Cleaning, and Vessel Classification
+At this final step, the results of the automatically analyzed vascular segments are reviewed for accuracy.  
+Erroneous or inconsistent data are removed through a data cleaning process.  
+Finally, the blood vessels are classified based on predefined criteria such as diameter, branching pattern, or anatomical region.
+<pre><code>SegEditor_v2025(Image,Reso,SEG)
+</code></pre>
+<img src="https://sugashi-phd.com/images/SegEditor_tmp.png" alt="SegEditor"/>
+
+##Project structure
+
+## License
+
+This project is released for academic, research, and non-commercial educational purposes only.  
+For any other usage, please contact the author.
+
+## Acknowledgements
+
+This work would not have been possible without the support and insight of my colleagues and mentors. 
+Special thanks to Professor Masamoto and the faculty for their valuable input throughout the development.
+
+
+## References
+
+1. **Takuma Sugashi**, Hiroya Yuki, Tomoya Niizawa, Hiroyuki Takuwa, Iwao Kanno, Kazuto Masamoto.  
+   *Three-dimensional microvascular network reconstruction from in vivo images with adaptation of the regional inhomogeneity in the signal-to-noise ratio*. Microcirculation, 2021.
+
+2. **Takuma Sugashi**, Tomoya Niizawa, Hiroki Suzuki, Hiroyuki Takuwa, Miyuki Unekawa, Yutaka Tomita, Iwao Kanno, Kazuto Masamoto.  
+   *Time Series Tracking of Cerebral Microvascular Adaptation to Hypoxia and Hyperoxia Imaged with Repeated in vivo Two-Photon Microscopy*. Adv Exp Med Biol. Springer, 2020.
+
+3. Hiroki Suzuki, **Takuma Sugashi**, Hiroshi Takeda, Hiroyuki Takuwa, Iwao Kanno, Kazuto Masamoto.  
+   *Error Evaluation for Automated Diameter Measurements of Cerebral Capillaries Captured with Two-Photon Laser Scanning Fluorescence Microscopy*. Adv Exp Med Biol. Springer, 2020.
+
+4. **Takuma Sugashi**, Yoshihara K, Kawaguchi H, Takuwa H, Ito H, Kanno I, Yamada Y, Masamoto K.  
+   *Automated image analysis for diameters and branching points of cerebral penetrating arteries and veins captured with two-photon microscopy*. Adv Exp Med Biol. Springer, 812:209–215, 2014.
+
+  
+
+## Contact
+
+For inquiries, please contact: **oshou.0131@gmail.com**
+
+**Note:** Please include **"TS-Functions/github"** in the subject line of your email.

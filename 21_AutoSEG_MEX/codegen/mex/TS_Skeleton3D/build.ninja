@@ -1,0 +1,62 @@
+# CompilerName=gcc
+# Mode=optim
+ninja_required_version = 1.3
+
+# Basic folders
+root = .
+builddir = $root/build/glnxa64
+matlabdir = /mnt/NAS/SSD/R2019b
+startdir = /mnt/NAS/SSD/AutoSegMex/Originals
+
+# Toolchain information
+cc = /bin/gcc
+cxx = g++
+linker = /bin/gcc
+linkerxx = g++
+
+cflags =  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -fwrapv -DNDEBUG -std=c99 -I "$root" -I "$startdir" -I "$matlabdir/extern/include" -I "$root/interface" -I "$matlabdir/simulink/include" -I "$matlabdir/rtw/c/src" -I "$matlabdir/rtw/c/src/ext_mode/common" -I "$matlabdir/rtw/c/ert" -I "." -DMODEL=TS_Skeleton3D_mex -DHAVESTDIO -DUSE_RTMODEL -DUNIX -c 
+
+cxxflags =  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c++11 -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -fwrapv -DNDEBUG -std=c++11 -I "$root" -I "$startdir" -I "$matlabdir/extern/include" -I "$root/interface" -I "$matlabdir/simulink/include" -I "$matlabdir/rtw/c/src" -I "$matlabdir/rtw/c/src/ext_mode/common" -I "$matlabdir/rtw/c/ert" -I "." -DMODEL=TS_Skeleton3D_mex -DHAVESTDIO -DUSE_RTMODEL -DUNIX -c 
+
+ldflags =  -pthread -Wl,--no-undefined -Wl,-rpath-link,$matlabdir/bin/glnxa64 -shared  -L"$matlabdir/bin/glnxa64" -lmx -lmex -lmat -lm -lstdc++  -o TS_Skeleton3D_mex.mexa64 -L"$matlabdir/bin/glnxa64" -lmwbwdistEDT_tbb -lemlrt -lcovrt -lut -lmwmathutil  -Wl,--version-script,TS_Skeleton3D_mex.map
+
+# Build Rules
+rule cc
+    command = $cc $cflags $in -o $out
+
+rule cxx
+    command = $cxx $cxxflags $in -o $out
+
+rule link
+    command = $linker $in $ldflags
+
+rule linkxx
+    command = $linkerxx $in $ldflags
+
+# Build
+build $builddir/rt_nonfinite.o : cc $root/rt_nonfinite.c
+build $builddir/TS_Skeleton3D_mexutil.o : cc $root/TS_Skeleton3D_mexutil.c
+build $builddir/TS_Skeleton3D_data.o : cc $root/TS_Skeleton3D_data.c
+build $builddir/TS_Skeleton3D_initialize.o : cc $root/TS_Skeleton3D_initialize.c
+build $builddir/TS_Skeleton3D_terminate.o : cc $root/TS_Skeleton3D_terminate.c
+build $builddir/TS_Skeleton3D.o : cc $root/TS_Skeleton3D.c
+build $builddir/padarray.o : cc $root/padarray.c
+build $builddir/repmat.o : cc $root/repmat.c
+build $builddir/assertValidSizeArg.o : cc $root/assertValidSizeArg.c
+build $builddir/eml_int_forloop_overflow_check.o : cc $root/eml_int_forloop_overflow_check.c
+build $builddir/bwdist.o : cc $root/bwdist.c
+build $builddir/sort.o : cc $root/sort.c
+build $builddir/sortIdx.o : cc $root/sortIdx.c
+build $builddir/diff.o : cc $root/diff.c
+build $builddir/find.o : cc $root/find.c
+build $builddir/indexShapeCheck.o : cc $root/indexShapeCheck.c
+build $builddir/ind2sub.o : cc $root/ind2sub.c
+build $builddir/TS_bwlabeln3D26.o : cc $root/TS_bwlabeln3D26.c
+build $builddir/_coder_TS_Skeleton3D_api.o : cc $root/interface/_coder_TS_Skeleton3D_api.c
+build $builddir/_coder_TS_Skeleton3D_mex.o : cc $root/interface/_coder_TS_Skeleton3D_mex.c
+build $builddir/TS_Skeleton3D_emxutil.o : cc $root/TS_Skeleton3D_emxutil.c
+build $builddir/_coder_TS_Skeleton3D_info.o : cc $root/interface/_coder_TS_Skeleton3D_info.c
+build $builddir/c_mexapi_version.o : cc $matlabdir/extern/version/c_mexapi_version.c
+
+# Link
+build $root/TS_Skeleton3D_mex.mexa64 : link $builddir/rt_nonfinite.o $builddir/TS_Skeleton3D_mexutil.o $builddir/TS_Skeleton3D_data.o $builddir/TS_Skeleton3D_initialize.o $builddir/TS_Skeleton3D_terminate.o $builddir/TS_Skeleton3D.o $builddir/padarray.o $builddir/repmat.o $builddir/assertValidSizeArg.o $builddir/eml_int_forloop_overflow_check.o $builddir/bwdist.o $builddir/sort.o $builddir/sortIdx.o $builddir/diff.o $builddir/find.o $builddir/indexShapeCheck.o $builddir/ind2sub.o $builddir/TS_bwlabeln3D26.o $builddir/_coder_TS_Skeleton3D_api.o $builddir/_coder_TS_Skeleton3D_mex.o $builddir/TS_Skeleton3D_emxutil.o $builddir/_coder_TS_Skeleton3D_info.o $builddir/c_mexapi_version.o 
