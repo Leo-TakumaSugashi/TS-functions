@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+import sys
+import os
+import chardet
+import re
+
+## Input check
+if len(sys.argv) < 2:
+    print("Usage: script.py <filename>")
+    sys.exit(1)
+
+file_path = sys.argv[1]
+
+if not os.path.isfile(file_path):
+    print(f"Error: file not found: {file_path}")
+    sys.exit(1)
+
+
+
+
+
+def main():
+    # バイナリで読んでエンコーディングを調べる
+    with open(file_path, 'rb') as f:
+        raw = f.read()
+        result = chardet.detect(raw)
+        enc = result['encoding']
+
+    # 判定されたエンコーディングで再読込
+    with open(file_path, 'r', encoding=enc, errors='replace') as f:
+        STR = [l.strip() for l in f]
+    
+    HTML = LoadHelpSection(STR,'',file_path)
+    print(HTML)
+    
+
+def LoadHelpSection(STR,HTML,FName):
+    ## Create Basement of HTML
+    HTML += f"<h3><b>{FName}</b></h3>\n"
+
+    c1 = 0
+    tf = False
+    ISclassdef = False
+    remainSTR = ''
+    for i,line in enumerate(STR):
+        trimmed = line.replace(" ", "").replace("　", "")  # remove half/full-width spaces
+        first_char = trimmed[:1]
+        if c1 == 0 and not tf and line.lstrip().startswith("function"):
+            # print(f'<p class="function_name">{line}</p>\n<p class="function_help"><pre>', end='\n')  
+            HTML += f'<p class="function_name">{line}</p>\n' 
+        elif c1 == 0 and not tf and line.lstrip().startswith("classdef"):
+            HTML += f'<p class="function_name">{line}</p>\n' 
+            ISclassdef = True
+
+        if first_char == "%":
+            if c1 == 0:
+                HTML += '<div class="function_help"><pre>'
+                tf = True
+                c1 = 1
+            if tf:
+                # print(f'{line}<br>', end='')  
+                HTML += f'{line}\n'
+
+        else:
+            if tf:
+                remainSTR = STR[i:]
+                HTML += '</pre></div>\n'
+                tf = False
+                break
+    HTML += "<hr>\n"
+        
+    
+    if ISclassdef:
+        for i,line in enumerate(remainSTR):
+            if line.lstrip().startswith("function"):
+                fun_name = line.replace('function','').replace(' ','')
+                fun_name = re.sub(r'^.*?=\s*|\(.*$', '', fun_name)
+                if fun_name == "...":
+                    continue
+                else:
+                    HTML = LoadHelpSection(remainSTR[i:],HTML,f"{FName}[{fun_name}]")
+
+    return HTML
+
+if __name__ == "__main__":
+    main()
